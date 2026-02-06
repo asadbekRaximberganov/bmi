@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skanerlash natijalari - Tarmoq Xavfsizligi Skaneri</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-shield-alt"></i> SecureScan
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">Bosh sahifa</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">Boshqaruv paneli</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('scan') }}">Skanerlash</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('history') }}">Tarix</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Chiqish</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Results Content -->
+    <div class="container py-4">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1>Skanerlash natijalari</h1>
+                <p class="lead">
+                    Manzil: <strong>{{ target }}</strong> | 
+                    Sana: <span class="text-muted">{{ created_at }}</span>
+                </p>
+            </div>
+            <div class="col-md-4 text-md-end">
+                <a href="{{ url_for('scan') }}" class="btn btn-primary me-2">
+                    <i class="fas fa-search"></i> Yangi skanerlash
+                </a>
+                <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left"></i> Orqaga
+                </a>
+            </div>
+        </div>
+
+        <!-- Summary Card -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow-sm mb-4">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Umumiy ma'lumot</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-3 text-center">
+                                {% if severity == 'High' %}
+                                    <div class="display-1 text-danger"><i class="fas fa-exclamation-triangle"></i></div>
+                                    <h4 class="text-danger">Yuqori xavf</h4>
+                                {% elif severity == 'Medium' %}
+                                    <div class="display-1 text-warning"><i class="fas fa-exclamation-circle"></i></div>
+                                    <h4 class="text-warning">O'rta xavf</h4>
+                                {% elif severity == 'Low' %}
+                                    <div class="display-1 text-success"><i class="fas fa-check-circle"></i></div>
+                                    <h4 class="text-success">Past xavf</h4>
+                                {% else %}
+                                    <div class="display-1 text-secondary"><i class="fas fa-info-circle"></i></div>
+                                    <h4 class="text-secondary">Noma'lum xavf</h4>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-9">
+                                <table class="table">
+                                    <tbody>
+                                        <tr>
+                                            <th scope="row" style="width: 40%">Skanerlash turi:</th>
+                                            <td>
+                                                {% if scan_type == 'ports' %}
+                                                    <span class="badge bg-primary">Port skanerlash</span>
+                                                {% elif scan_type == 'ssl' %}
+                                                    <span class="badge bg-info">SSL Sertifikat</span>
+                                                {% elif scan_type == 'sql_injection' %}
+                                                    <span class="badge bg-warning">SQL Injection</span>
+                                                {% elif scan_type == 'xss' %}
+                                                    <span class="badge bg-danger">XSS</span>
+                                                {% elif scan_type == 'headers' %}
+                                                    <span class="badge bg-secondary">HTTP Headers</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">{{ scan_type }}</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Xavf darajasi:</th>
+                                            <td>
+                                                {% if severity == 'High' %}
+                                                    <span class="badge bg-danger">Yuqori</span>
+                                                {% elif severity == 'Medium' %}
+                                                    <span class="badge bg-warning">O'rta</span>
+                                                {% elif severity == 'Low' %}
+                                                    <span class="badge bg-success">Past</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Noma'lum</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Manzil:</th>
+                                            <td>{{ target }}</td>
+                                        </tr>
+                                        <tr>
+                                            <th scope="row">Skanerlash sanasi:</th>
+                                            <td>{{ created_at }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Results -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Batafsil natijalar</h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Port Scan Results -->
+                        {% if scan_type == 'ports' %}
+                            {% if results %}
+                                <div class="alert {% if severity == 'High' %}alert-danger{% elif severity == 'Medium' %}alert-warning{% else %}alert-info{% endif %} mb-4">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    {% if severity == 'High' %}
+                                        <strong>Yuqori xavf:</strong> Ko'p sonli ochiq portlar aniqlandi. Bu tarmoq himoyasiga tahdid soladi.
+                                    {% elif severity == 'Medium' %}
+                                        <strong>O'rta xavf:</strong> Ba'zi muhim portlar ochiq. Faqat zarur bo'lgan portlarni ochiq qoldiring.
+                                    {% else %}
+                                        <strong>Past xavf:</strong> Bir nechta standart portlar ochiq. Bu normal holat.
+                                    {% endif %}
+                                </div>
+                                
+                                <h5 class="mb-3">Ochiq portlar ({{ results|length }})</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Port</th>
+                                                <th>Xizmat</th>
+                                                <th>Tavsiya</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for port in results %}
+                                            <tr>
+                                                <td><strong>{{ port.port }}</strong></td>
+                                                <td>{{ port.service }}</td>
+                                                <td>
+                                                    {% if port.port == 21 %}
+                                                        FTP xizmati xavfsiz emas. SFTP yoki FTPs dan foydalaning.
+                                                    {% elif port.port == 23 %}
+                                                        Telnet xavfsiz emas. SSH (22-port) dan foydalaning.
+                                                    {% elif port.port == 25 %}
+                                                        SMTP portini himoyalash kerak.
+                                                    {% elif port.port == 80 %}
+                                                        HTTP xavfsiz emas. HTTPS (443-port) dan foydalaning.
+                                                    {% elif port.port == 3389 %}
+                                                        RDP portini himoyalashni kuchaytiring.
+                                                    {% else %}
+                                                        Agar zarurat bo'lmasa, portni yoping.
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <h5>Xavfsizlik tavsiylari</h5>
+                                    <ul class="list-group">
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            Faqat zarur bo'lgan portlarni ochiq qoldiring va boshqalarini yoping.
+                                        </li>
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            Firewall orqali ochiq portlarga kirishni cheklang.
+                                        </li>
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            Xizmatlarni doimo yangilab turing va xavfsizlik yangilanishlarini o'rnating.
+                                        </li>
+                                    </ul>
+                                </div>
+                            {% else %}
+                                <div class="alert alert-success">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <strong>Yaxshi!</strong> Tekshirilgan portlarda ochiq portlar topilmadi.
+                                </div>
+                            {% endif %}
+                            
+                        <!-- SSL Certificate Results -->
+                        {% elif scan_type == 'ssl' %}
+                            {% if 'error' in results %}
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Xato:</strong> {{ results.error }}
+                                </div>
+                            {% else %}
+                                <div class="alert {% if severity == 'High' %}alert-danger{% elif severity == 'Medium' %}alert-warning{% else %}alert-success{% endif %} mb-4">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    {% if severity == 'High' %}
+                                        <strong>Yuqori xavf:</strong> SSL sertifikat muddati tugagan!
+                                    {% elif severity == 'Medium' %}
+                                        <strong>O'rta xavf:</strong> SSL sertifikat muddati yaqin kunlarda tugaydi ({{ results.days_left }} kun qoldi).
+                                    {% else %}
+                                        <strong>Past xavf:</strong> SSL sertifikat yaxshi holatda.
+                                    {% endif %}
+                                </div>
+                                
+                                <h5 class="mb-3">SSL Sertifikat ma'lumotlari</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <tbody>
+                                            <tr>
+                                                <th style="width: 30%">Status:</th>
+                                                <td>
+                                                    {% if results.status == 'Valid' %}
+                                                        <span class="badge bg-success">Yaroqli</span>
+                                                    {% else %}
+                                                        <span class="badge bg-danger">Yaroqsiz</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Qolgan muddat:</th>
+                                                <td>{{ results.days_left }} kun</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Sertifikat egasi:</th>
+                                                <td>
+                                                    {% if results.subject.CN %}
+                                                        {{ results.subject.CN }}
+                                                    {% else %}
+                                                        Ma'lumot yo'q
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Sertifikat beruvchi:</th>
+                                                <td>
+                                                    {% if results.issuer.CN %}
+                                                        {{ results.issuer.CN }}
+                                                    {% else %}
+                                                        Ma'lumot yo'q
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Amal qilish boshlanishi:</th>
+                                                <td>{{ results.not_before }}</td>
+                                            </tr>
+                                            <tr>
+                                                <th>Amal qilish tugashi:</th>
+                                                <td>{{ results.not_after }}</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <h5>Xavfsizlik tavsiylari</h5>
+                                    <ul class="list-group">
+                                        {% if severity == 'High' %}
+                                            <li class="list-group-item">
+                                                <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+                                                <strong>Zudlik bilan sertifikatni yangilang!</strong> Muddati tugagan sertifikat xavfsizlikni ta'minlamaydi.
+                                            </li>
+                                        {% elif severity == 'Medium' %}
+                                            <li class="list-group-item">
+                                                <i class="fas fa-exclamation-circle text-warning me-2"></i>
+                                                <strong>Sertifikatni tez orada yangilang.</strong> Muddati tugashiga {{ results.days_left }} kun qoldi.
+                                            </li>
+                                        {% endif %}
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            Sertifikatni yangilash jarayonini avtomatlashtirish uchun Let's Encrypt kabi xizmatlardan foydalaning.
+                                        </li>
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            SSL sertifikatlarni muntazam tekshirib turing va eslatmalarni sozlang.
+                                        </li>
+                                    </ul>
+                                </div>
+                            {% endif %}
+                            
+                        <!-- HTTP Headers Results -->
+                        {% elif scan_type == 'headers' %}
+                            {% if 'error' in results %}
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Xato:</strong> {{ results.error }}
+                                </div>
+                            {% else %}
+                                <div class="alert {% if severity == 'High' %}alert-danger{% elif severity == 'Medium' %}alert-warning{% else %}alert-success{% endif %} mb-4">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>Xavfsizlik xolati:</strong> {{ results.missing_count }} xavfsizlik headerlari mavjud emas
+                                </div>
+                                
+                                <h5 class="mb-3">HTTP Header ma'lumotlari</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Header</th>
+                                                <th>Qiymat</th>
+                                                <th>Status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for header, value in results.headers.items() %}
+                                            <tr>
+                                                <td><strong>{{ header }}</strong></td>
+                                                <td>{{ value }}</td>
+                                                <td>
+                                                    {% if value == 'Missing' %}
+                                                        <span class="badge bg-danger">Mavjud emas</span>
+                                                    {% else %}
+                                                        <span class="badge bg-success">Mavjud</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <h5>Xavfsizlik tavsiylari</h5>
+                                    <ul class="list-group">
+                                        {% if 'Strict-Transport-Security' in results.headers and results.headers['Strict-Transport-Security'] == 'Missing' %}
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>Strict-Transport-Security</strong> headerini qo'shing. Bu foydalanuvchilarni HTTPS protokolidan foydalanishga majbur qiladi.
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if 'Content-Security-Policy' in results.headers and results.headers['Content-Security-Policy'] == 'Missing' %}
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>Content-Security-Policy</strong> headerini qo'shing. Bu XSS hujumlaridan himoya qilishga yordam beradi.
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if 'X-Content-Type-Options' in results.headers and results.headers['X-Content-Type-Options'] == 'Missing' %}
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>X-Content-Type-Options</strong> headerini qo'shing. Bu MIME type sniffing hujumlaridan himoya qilishga yordam beradi.
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if 'X-Frame-Options' in results.headers and results.headers['X-Frame-Options'] == 'Missing' %}
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>X-Frame-Options</strong> headerini qo'shing. Bu clickjacking hujumlaridan himoya qilishga yordam beradi.
+                                        </li>
+                                        {% endif %}
+                                        
+                                        {% if 'X-XSS-Protection' in results.headers and results.headers['X-XSS-Protection'] == 'Missing' %}
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>X-XSS-Protection</strong> headerini qo'shing. Bu XSS hujumlaridan himoya qilishga yordam beradi.
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                            {% endif %}
+                            
+                        <!-- SQL Injection Results -->
+                        {% elif scan_type == 'sql_injection' %}
+                            {% if not results %}
+                                <div class="alert alert-success mb-4">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <strong>Yaxshi!</strong> Hozircha SQL Injection zaifliklari aniqlanmadi.
+                                </div>
+                            {% else %}
+                                <div class="alert alert-danger mb-4">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Yuqori xavf:</strong> SQL Injection zaifliklari aniqlandi. Bu jiddiy xavfsizlik muammosidir.
+                                </div>
+                                
+                                <h5 class="mb-3">Aniqlangan SQL Injection zaifliklari</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Payload</th>
+                                                <th>Tavsif</th>
+                                                <th>Xavf darajasi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in results %}
+                                            <tr>
+                                                <td><code>{{ item.payload }}</code></td>
+                                                <td>{{ item.description }}</td>
+                                                <td><span class="badge bg-danger">{{ item.severity }}</span></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <h5>Xavfsizlik tavsiylari</h5>
+                                    <ul class="list-group">
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>Prepared statementsdan foydalaning.</strong> Bu SQL Injection hujumlarini oldini olishning eng yaxshi usulidir.
+                                        </li>
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>Kiritilgan ma'lumotlarni validatsiya qiling.</strong> Barcha foydalanuvchi kiritadigan ma'lumotlar tekshirilishi kerak.
+                                        </li>
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>Ma'lumotlar bazasi foydalanuvchisining huquqlarini cheklang.</strong> Ma'lumotlar bazasi foydalanuvchisiga faqat zarur bo'lgan minimal huquqlarni bering.
+                                        </li>
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>Web Application Firewall (WAF) o'rnating.</strong> Bu SQL Injection hujumlarini bloklashga yordam beradi.
+                                        </li>
+                                    </ul>
+                                </div>
+                            {% endif %}
+                            
+                        <!-- XSS Results -->
+                        {% elif scan_type == 'xss' %}
+                            {% if not results %}
+                                <div class="alert alert-success mb-4">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <strong>Yaxshi!</strong> Hozircha XSS zaifliklari aniqlanmadi.
+                                </div>
+                            {% else %}
+                                <div class="alert alert-danger mb-4">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Yuqori xavf:</strong> XSS (Cross-Site Scripting) zaifliklari aniqlandi. Bu jiddiy xavfsizlik muammosidir.
+                                </div>
+                                
+                                <h5 class="mb-3">Aniqlangan XSS zaifliklari</h5>
+                                <div class="table-responsive">
+                                    <table class="table table-striped">
+                                        <thead>
+                                            <tr>
+                                                <th>Payload</th>
+                                                <th>Tavsif</th>
+                                                <th>Xavf darajasi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in results %}
+                                            <tr>
+                                                <td><code>{{ item.payload }}</code></td>
+                                                <td>{{ item.description }}</td>
+                                                <td><span class="badge bg-danger">{{ item.severity }}</span></td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <div class="mt-4">
+                                    <h5>Xavfsizlik tavsiylari</h5>
+                                    <ul class="list-group">
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>Kiritilgan ma'lumotlarni validatsiya qiling va sanitizatsiya qiling.</strong> Barcha foydalanuvchi kiritadigan ma'lumotlar tekshirilishi va xavfsiz qilinishi kerak.
+                                        </li>
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>Content-Security-Policy headerini sozlang.</strong> Bu XSS hujumlarini oldini olishga yordam beradi.
+                                        </li>
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>HTTPOnly cookie flagini ishlatng.</strong> Bu client-side scriptlarni cookie ma'lumotlariga kirishini oldini oladi.
+                                        </li>
+                                        <li class="list-group-item">
+                                            <i class="fas fa-shield-alt text-primary me-2"></i>
+                                            <strong>Web Application Firewall (WAF) o'rnating.</strong> Bu XSS hujumlarini bloklashga yordam beradi.
+                                        </li>
+                                    </ul>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Export and Actions -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Amallar</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between">
+                            <div>
+                                <button class="btn btn-success me-2" onclick="window.print()">
+                                    <i class="fas fa-print"></i> Chop etish
+                                </button>
+                                <a href="{{ url_for('scan') }}" class="btn btn-primary me-2">
+                                    <i class="fas fa-search"></i> Yangi skanerlash
+                                </a>
+                            </div>
+                            <div>
+                                <form action="{{ url_for('delete_scan', scan_id=scan_id) }}" method="POST" class="d-inline" onsubmit="return confirm('Rostdan ham bu natijani o\'chirmoqchimisiz?');">
+                                    <button type="submit" class="btn btn-outline-danger">
+                                        <i class="fas fa-trash"></i> O'chirish
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    

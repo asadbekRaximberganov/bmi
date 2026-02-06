@@ -1,0 +1,219 @@
+/* Custom Styles for Tarmoq Xavfsizligi Skaneri */
+
+/* Global Styles */
+body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+.container {
+    flex: 1;
+}
+
+/* Hero Section Styles */
+.hero-section {
+    background-color: #f8f9fa;
+    padding: 60px 0;
+    border-radius: 0.3rem;
+}
+
+/* Features Section */
+.features-section .card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.features-section .card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+}
+
+.features-section .card i {
+    margin-bottom: 1rem;
+}
+
+/* How It Works Section */
+.steps {
+    position: relative;
+    padding-left: 20px;
+}
+
+.steps .step {
+    margin-bottom: 2rem;
+    position: relative;
+}
+
+.steps .step:last-child {
+    margin-bottom: 0;
+}
+
+.steps .step:before {
+    content: '';
+    position: absolute;
+    left: 17px;
+    top: 30px;
+    bottom: -30px;
+    width: 2px;
+    background-color: #dee2e6;
+}
+
+.steps .step:last-child:before {
+    display: none;
+}
+
+.step-icon .badge {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+/* Card hover effects */
+.card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+/* Button hover effects */
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+}
+
+.btn-primary:hover {
+    background-color: #0b5ed7;
+    border-color: #0a58ca;
+    transform: translateY(-2px);
+}
+
+.btn-outline-primary:hover {
+    transform: translateY(-2px);
+}
+
+/* Navigation active state */
+.navbar-dark .navbar-nav .nav-link.active {
+    color: #fff;
+    font-weight: 600;
+    position: relative;
+}
+
+.navbar-dark .navbar-nav .nav-link.active:after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 2px;
+    background-color: #fff;
+}
+
+/* Form styling */
+.form-control:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Alert styling */
+.alert {
+    border-radius: 0.3rem;
+}
+
+/* Dashboard cards */
+.dashboard-card {
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+.dashboard-card .card-body {
+    padding: 1.5rem;
+}
+
+/* Results page styling */
+.severity-indicator {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+/* Print styles */
+@media print {
+    .navbar, .footer, .btn, form {
+        display: none !important;
+    }
+    
+    .container {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .card {
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+    }
+    
+    body {
+        font-size: 12pt;
+    }
+    
+    h1 {
+        font-size: 18pt;
+    }
+    
+    h2, h3 {
+        font-size: 16pt;
+    }
+}
+
+/* Animation for loading spinner */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.spinner-border {
+    animation: spin 1s linear infinite;
+}
+
+/* Responsive table */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* Security level badges */
+.badge.bg-danger {
+    background-color: #dc3545 !important;
+}
+
+.badge.bg-warning {
+    background-color: #ffc107 !important;
+    color: #000 !important;
+}
+
+.badge.bg-success {
+    background-color: #198754 !important;
+}
+
+/* Custom footer */
+footer {
+    margin-top: auto;
+}
+
+/* Code blocks in results */
+code {
+    padding: 0.2rem 0.4rem;
+    font-size: 90%;
+    color: #d63384;
+    background-color: #f8f9fa;
+    border-radius: 0.2rem;
+}

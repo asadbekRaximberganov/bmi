@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600">
+  <!-- Background gradient -->
+  <defs>
+    <linearGradient id="bg-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f8f9fa" />
+      <stop offset="100%" stop-color="#e9ecef" />
+    </linearGradient>
+  </defs>
+  <rect width="800" height="600" fill="url(#bg-gradient)" />
+
+  <!-- Network grid background -->
+  <g id="network-grid" stroke="#dee2e6" stroke-width="1" opacity="0.3">
+    <path d="M50,50 L750,50" />
+    <path d="M50,150 L750,150" />
+    <path d="M50,250 L750,250" />
+    <path d="M50,350 L750,350" />
+    <path d="M50,450 L750,450" />
+    <path d="M50,550 L750,550" />
+    
+    <path d="M50,50 L50,550" />
+    <path d="M200,50 L200,550" />
+    <path d="M350,50 L350,550" />
+    <path d="M500,50 L500,550" />
+    <path d="M650,50 L650,550" />
+    <path d="M750,50 L750,550" />
+  </g>
+
+  <!-- Main shield -->
+  <g id="shield">
+    <path d="M400,100 L550,150 C550,350 500,400 400,450 C300,400 250,350 250,150 L400,100 Z" 
+          fill="#0d6efd" opacity="0.9" />
+    <path d="M400,130 L520,170 C520,340 480,380 400,420 C320,380 280,340 280,170 L400,130 Z" 
+          fill="#ffffff" />
+    <path d="M400,160 L490,190 C490,330 460,360 400,390 C340,360 310,330 310,190 L400,160 Z" 
+          fill="#0d6efd" opacity="0.7" />
+  </g>
+
+  <!-- Lock icon inside shield -->
+  <g id="lock">
+    <rect x="370" y="280" width="60" height="50" rx="5" fill="#0d6efd" />
+    <path d="M380,280 L380,260 C380,243.4 393.4,230 410,230 C426.6,230 440,243.4 440,260 L440,280" 
+          stroke="#0d6efd" stroke-width="10" fill="none" />
+    <circle cx="400" cy="305" r="8" fill="#ffffff" />
+    <line x1="400" y1="305" x2="400" y2="320" stroke="#ffffff" stroke-width="4" />
+  </g>
+
+  <!-- Network nodes and connections -->
+  <g id="network">
+    <!-- Network nodes -->
+    <circle cx="200" cy="200" r="15" fill="#dc3545" />
+    <circle cx="300" cy="350" r="15" fill="#198754" />
+    <circle cx="450" cy="480" r="15" fill="#0d6efd" />
+    <circle cx="550" cy="250" r="15" fill="#ffc107" />
+    <circle cx="600" cy="400" r="15" fill="#6610f2" />
+    <circle cx="150" cy="450" r="15" fill="#fd7e14" />
+    
+    <!-- Network connections -->
+    <path d="M200,200 L300,350" stroke="#dee2e6" stroke-width="2" />
+    <path d="M300,350 L450,480" stroke="#dee2e6" stroke-width="2" />
+    <path d="M450,480 L600,400" stroke="#dee2e6" stroke-width="2" />
+    <path d="M600,400 L550,250" stroke="#dee2e6" stroke-width="2" />
+    <path d="M550,250 L200,200" stroke="#dee2e6" stroke-width="2" />
+    <path d="M300,350 L150,450" stroke="#dee2e6" stroke-width="2" />
+    <path d="M150,450 L450,480" stroke="#dee2e6" stroke-width="2" />
+  </g>
+
+  <!-- Scanning beams -->
+  <g id="scanning-beams">
+    <path d="M400,280 L200,200" stroke="#0d6efd" stroke-width="2" stroke-dasharray="5,5">
+      <animate attributeName="stroke-dashoffset" from="0" to="100" dur="3s" repeatCount="indefinite" />
+    </path>
+    <path d="M400,280 L300,350" stroke="#0d6efd" stroke-width="2" stroke-dasharray="5,5">
+      <animate attributeName="stroke-dashoffset" from="0" to="100" dur="4s" repeatCount="indefinite" />
+    </path>
+    <path d="M400,280 L450,480" stroke="#0d6efd" stroke-width="2" stroke-dasharray="5,5">
+      <animate attributeName="stroke-dashoffset" from="0" to="100" dur="3.5s" repeatCount="indefinite" />
+    </path>
+    <path d="M400,280 L550,250" stroke="#0d6efd" stroke-width="2" stroke-dasharray="5,5">
+      <animate attributeName="stroke-dashoffset" from="0" to="100" dur="2.5s" repeatCount="indefinite" />
+    </path>
+    <path d="M400,280 L600,400" stroke="#0d6efd" stroke-width="2" stroke-dasharray="5,5">
+      <animate attributeName="stroke-dashoffset" from="0" to="100" dur="4.5s" repeatCount="indefinite" />
+    </path>
+    <path d="M400,280 L150,450" stroke="#0d6efd" stroke-width="2" stroke-dasharray="5,5">
+      <animate attributeName="stroke-dashoffset" from="0" to="100" dur="5s" repeatCount="indefinite" />
+    </path>
+  </g>
+
+  <!-- Warning symbols -->
+  <g id="warnings">
+    <polygon points="200,180 190,200 210,200" fill="#dc3545" />
+    <text x="200" y="197" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="white">!</text>
+    
+    <polygon points="550,230 540,250 560,250" fill="#ffc107" />
+    <text x="550" y="247" text-anchor="middle" font-family="Arial" font-size="12" font-weight="bold" fill="white">!</text>
+  </g>
+
+  <!-- Check symbols -->
+  <g id="checks">
+    <circle cx="300" cy="350" r="12" fill="#198754" />
+    <path d="M290,350 L298,358 L310,342" stroke="white" stroke-width="2" fill="none" />
+    
+    <circle cx="450" cy="480" r="12" fill="#0d6efd" />
+    <path d="M440,480 L448,488 L460,472" stroke="white" stroke-width="2" fill="none" />
+  </g>
+
+  <!-- Data visualization elements -->
+  <g id="data-viz">
+    <!-- Bar chart -->
+    <rect x="600" y="390" width="10" height="20" fill="#6610f2" />
+    <rect x="615" y="380" width="10" height="30" fill="#6610f2" />
+    <rect x="630" y="370" width="10" height="40" fill="#6610f2" />
+    
+    <!-- Pie chart -->
+    <circle cx="150" cy="450" r="12" fill="#fd7e14" />
+    <path d="M150,450 L150,438 A12,12 0 0,1 162,450 Z" fill="#198754" />
+    <path d="M150,450 L162,450 A12,12 0 0,1 150,462 Z" fill="#0d6efd" />
+  </g>
+
+  <!-- Binary code -->
+  <g id="binary" font-family="Courier New" font-size="10" fill="#6c757d" opacity="0.5">
+    <text x="70" y="70">10110101</text>
+    <text x="70" y="85">01001010</text>
+    <text x="70" y="100">11010010</text>
+    
+    <text x="700" y="500">10110101</text>
+    <text x="700" y="515">01001010</text>
+    <text x="700" y="530">11010010</text>
+  </g>
+
+  <!-- Network packet animations -->
+  <g id="packets">
+    <circle cx="250" cy="175" r="5" fill="#0d6efd">
+      <animate attributeName="cx" from="200" to="300" dur="3s" repeatCount="indefinite" />
+      <animate attributeName="cy" from="200" to="350" dur="3s" repeatCount="indefinite" />
+    </circle>
+    
+    <circle cx="525" cy="325" r="5" fill="#0d6efd">
+      <animate attributeName="cx" from="550" to="450" dur="4s" repeatCount="indefinite" />
+      <animate attributeName="cy" from="250" to="480" dur="4s" repeatCount="indefinite" />
+    </circle>
+    
+    <circle cx="375" cy="420" r="5" fill="#0d6efd">
+      <animate attributeName="cx" from="300" to="450" dur="3.5s" repeatCount="indefinite" />
+      <animate attributeName="cy" from="350" to="480" dur="3.5s" repeatCount="indefinite" />
+    </circle>
+  </g>
+
+  <!-- Magnifying glass icon -->
+  <g id="magnifier" transform="translate(120, 380) scale(0.8)">
+    <circle cx="0" cy="0" r="30" fill="none" stroke="#212529" stroke-width="5" />
+    <line x1="20" y1="20" x2="40" y2="40" stroke="#212529" stroke-width="5" />
+    <circle cx="0" cy="0" r="25" fill="#ffffff" opacity="0.5" />
+  </g>
+
+  <!-- Server icon -->
+  <g id="server" transform="translate(700, 130) scale(0.8)">
+    <rect x="-25" y="-40" width="50" height="80" rx="5" fill="#212529" />
+    <rect x="-20" y="-35" width="40" height="10" rx="2" fill="#6c757d" />
+    <rect x="-20" y="-20" width="40" height="10" rx="2" fill="#0d6efd" />
+    <rect x="-20" y="-5" width="40" height="10" rx="2" fill="#6c757d" />
+    <rect x="-20" y="10" width="40" height="10" rx="2" fill="#0d6efd" />
+    <rect x="-20" y="25" width="40" height="10" rx="2" fill="#6c757d" />
+    <circle cx="-10" cy="-30" r="2" fill="#dc3545" />
+    <circle cx="-10" cy="-15" r="2" fill="#dc3545" />
+    <circle cx="-10" cy="0" r="2" fill="#dc3545" />
+    <circle cx="-10" cy="15" r="2" fill="#dc3545" />
+    <circle cx="-10" cy="30" r="2" fill="#dc3545" />
+  </g>
+</svg>

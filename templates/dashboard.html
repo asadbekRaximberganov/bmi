@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Boshqaruv paneli - Tarmoq Xavfsizligi Skaneri</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-shield-alt"></i> SecureScan
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">Bosh sahifa</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('dashboard') }}">Boshqaruv paneli</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('scan') }}">Skanerlash</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('history') }}">Tarix</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Chiqish</a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Dashboard Content -->
+    <div class="container py-4">
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h1 class="mb-0">Boshqaruv paneli</h1>
+                    <a href="{{ url_for('scan') }}" class="btn btn-primary">
+                        <i class="fas fa-search"></i> Yangi skanerlash
+                    </a>
+                </div>
+                <hr>
+            </div>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row mb-4">
+            <div class="col-md-4 mb-3">
+                <div class="card bg-primary text-white h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="fas fa-shield-alt fa-3x me-3"></i>
+                        <div>
+                            <h5 class="card-title">Xush kelibsiz</h5>
+                            <p class="card-text">{{ session.username }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card bg-success text-white h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="fas fa-tasks fa-3x me-3"></i>
+                        <div>
+                            <h5 class="card-title">Mavjud skanerlash turlari</h5>
+                            <p class="card-text">5</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 mb-3">
+                <div class="card bg-info text-white h-100">
+                    <div class="card-body d-flex align-items-center">
+                        <i class="fas fa-history fa-3x me-3"></i>
+                        <div>
+                            <h5 class="card-title">So'nggi skanerlashlar</h5>
+                            <p class="card-text">{{ recent_scans|length }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scan Types -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">Skanerlash imkoniyatlari</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center p-3 border rounded">
+                                    <i class="fas fa-network-wired fa-2x text-primary me-3"></i>
+                                    <div>
+                                        <h5>Port skanerlash</h5>
+                                        <p class="mb-0">Server yoki tarmoq qurilmalarida ochiq portlarni va xizmatlarni aniqlash</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center p-3 border rounded">
+                                    <i class="fas fa-lock fa-2x text-primary me-3"></i>
+                                    <div>
+                                        <h5>SSL Sertifikat tekshiruvi</h5>
+                                        <p class="mb-0">SSL sertifikatlarning yaroqlilik muddati va xavfsizligi</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center p-3 border rounded">
+                                    <i class="fas fa-code fa-2x text-primary me-3"></i>
+                                    <div>
+                                        <h5>SQL Injection tekshiruvi</h5>
+                                        <p class="mb-0">Veb-saytlarda SQL injection zaifliklarini aniqlash</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center p-3 border rounded">
+                                    <i class="fas fa-bug fa-2x text-primary me-3"></i>
+                                    <div>
+                                        <h5>XSS (Cross-Site Scripting) tekshiruvi</h5>
+                                        <p class="mb-0">Veb-saytlarda XSS zaifliklarini aniqlash</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <div class="d-flex align-items-center p-3 border rounded">
+                                    <i class="fas fa-shield-virus fa-2x text-primary me-3"></i>
+                                    <div>
+                                        <h5>HTTP headerlarni tekshirish</h5>
+                                        <p class="mb-0">Xavfsizlik headerlarining to'g'ri sozlanganligini tekshirish</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Scans -->
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-light d-flex justify-content-between">
+                        <h5 class="mb-0">So'nggi skanerlashlar</h5>
+                        <a href="{{ url_for('history') }}" class="btn btn-sm btn-outline-primary">To'liq tarix</a>
+                    </div>
+                    <div class="card-body">
+                        {% if recent_scans %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Manzil</th>
+                                        <th>Skanerlash turi</th>
+                                        <th>Xavf darajasi</th>
+                                        <th>Sana</th>
+                                        <th>Amallar</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for scan in recent_scans %}
+                                    <tr>
+                                        <td>{{ scan[1] }}</td>
+                                        <td>
+                                            {% if scan[2] == 'ports' %}
+                                                <span class="badge bg-primary">Port skanerlash</span>
+                                            {% elif scan[2] == 'ssl' %}
+                                                <span class="badge bg-info">SSL Sertifikat</span>
+                                            {% elif scan[2] == 'sql_injection' %}
+                                                <span class="badge bg-warning">SQL Injection</span>
+                                            {% elif scan[2] == 'xss' %}
+                                                <span class="badge bg-danger">XSS</span>
+                                            {% elif scan[2] == 'headers' %}
+                                                <span class="badge bg-secondary">HTTP Headers</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">{{ scan[2] }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if scan[3] == 'High' %}
+                                                <span class="badge bg-danger">Yuqori</span>
+                                            {% elif scan[3] == 'Medium' %}
+                                                <span class="badge bg-warning">O'rta</span>
+                                            {% elif scan[3] == 'Low' %}
+                                                <span class="badge bg-success">Past</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">Noma'lum</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ scan[4] }}</td>
+                                        <td>
+                                            <a href="{{ url_for('scan_results', scan_id=scan[0]) }}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i> Ko'rish
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                            <p>Hozircha skanerlash natijalari yo'q.</p>
+                            <a href="{{ url_for('scan') }}" class="btn btn-primary">Skanerlashni boshlash</a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4 mt-auto">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-shield-alt"></i> SecureScan</h5>
+                    <p>Zamonaviy tarmoq xavfsizligi skaneri</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p>&copy; 2025 SecureScan. Barcha huquqlar himoyalangan.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

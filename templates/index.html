@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarmoq Xavfsizligi Skaneri</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-shield-alt"></i> SecureScan
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('index') }}">Bosh sahifa</a>
+                    </li>
+                    {% if session.get('user_id') %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('dashboard') }}">Boshqaruv paneli</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('scan') }}">Skanerlash</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('history') }}">Tarix</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('logout') }}">Chiqish</a>
+                    </li>
+                    {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('login') }}">Kirish</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('register') }}">Ro'yxatdan o'tish</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Flash Messages -->
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Hero Section -->
+    <header class="hero-section py-5">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6">
+                    <h1 class="display-4 fw-bold text-primary">Tarmoq Xavfsizligi Skaneri</h1>
+                    <p class="lead text-dark my-4">Zamonaviy tarmoq skaneri yordamida kompyuter va veb-saytingiz xavfsizligini tekshiring va zaifliklarni aniqlang.</p>
+                    {% if session.get('user_id') %}
+                    <a href="{{ url_for('scan') }}" class="btn btn-primary btn-lg">Skanerlashni boshlash</a>
+                    {% else %}
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-lg me-3">Ro'yxatdan o'tish</a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline-primary btn-lg">Kirish</a>
+                    {% endif %}
+                </div>
+                <div class="col-lg-6 d-none d-lg-block">
+                    <img src="{{ url_for('static', filename='img/security.svg') }}" alt="Network Security" class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Features Section -->
+    <section class="features-section py-5 bg-light">
+        <div class="container">
+            <h2 class="text-center mb-5">Xizmatlarimiz</h2>
+            <div class="row">
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-network-wired fa-4x text-primary mb-3"></i>
+                            <h3 class="card-title">Port skanerlash</h3>
+                            <p class="card-text">Tarmoqda ochiq portlarni aniqlash orqali xavfsizlik bo'shliqlari va potentsial hujum nuqtalarini topish.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-lock fa-4x text-primary mb-3"></i>
+                            <h3 class="card-title">SSL Sertifikat tekshiruvi</h3>
+                            <p class="card-text">SSL sertifikatlarning yaroqlilik muddati va xavfsizlik darajasini tekshirish.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body text-center">
+                            <i class="fas fa-shield-virus fa-4x text-primary mb-3"></i>
+                            <h3 class="card-title">Zaiflik tahlili</h3>
+                            <p class="card-text">SQL Injection, XSS va boshqa zaifliklarni aniqlash va tahlil qilish.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section class="how-it-works py-5">
+        <div class="container">
+            <h2 class="text-center mb-5">Qanday ishlaydi?</h2>
+            <div class="row justify-content-center">
+                <div class="col-md-8">
+                    <div class="steps">
+                        <div class="step d-flex">
+                            <div class="step-icon">
+                                <span class="badge bg-primary rounded-circle">1</span>
+                            </div>
+                            <div class="step-content ms-3">
+                                <h4>Ro'yxatdan o'ting</h4>
+                                <p>Tizimdan to'liq foydalanish uchun ro'yxatdan o'ting yoki tizimga kiring.</p>
+                            </div>
+                        </div>
+                        <div class="step d-flex">
+                            <div class="step-icon">
+                                <span class="badge bg-primary rounded-circle">2</span>
+                            </div>
+                            <div class="step-content ms-3">
+                                <h4>Skanerlash turini tanlang</h4>
+                                <p>Siz tekshirmoqchi bo'lgan xavfsizlik turini tanlang: port skanerlash, SSL sertifikat, SQL injection, XSS, va boshqalar.</p>
+                            </div>
+                        </div>
+                        <div class="step d-flex">
+                            <div class="step-icon">
+                                <span class="badge bg-primary rounded-circle">3</span>
+                            </div>
+                            <div class="step-content ms-3">
+                                <h4>Manzilni kiriting</h4>
+                                <p>Tekshirmoqchi bo'lgan veb-sayt manzili yoki IP-manzilni kiriting.</p>
+                            </div>
+                        </div>
+                        <div class="step d-flex">
+                            <div class="step-icon">
+                                <span class="badge bg-primary rounded-circle">4</span>
+                            </div>
+                            <div class="step-content ms-3">
+                                <h4>Natijalarni tahlil qiling</h4>
+                                <p>Batafsil tahlil natijalarini ko'ring va xavfsizlik tavsiyalarini oling.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-dark text-white py-4">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5><i class="fas fa-shield-alt"></i> SecureScan</h5>
+                    <p>Zamonaviy tarmoq xavfsizligi skaneri</p>
+                </div>
+                <div class="col-md-6 text-md-end">
+                    <p>&copy; 2025 SecureScan. Barcha huquqlar himoyalangan.</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
