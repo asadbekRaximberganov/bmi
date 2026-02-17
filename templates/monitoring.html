@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monitoring Tizimi</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+  <style>
+    body { background: #f4f6fb; }
+
+    /* STAT CARDS */
+    .stat-card {
+      border: none; border-radius: 14px; padding: 22px 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+    .stat-icon {
+      width: 52px; height: 52px; border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 22px; margin-bottom: 12px;
+    }
+    .stat-val  { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
+    .stat-lbl  { font-size: 12px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; }
+    .stat-meta { font-size: 12px; color: #adb5bd; margin-top: 4px; }
+
+    /* STATUS HERO */
+    .status-hero {
+      border: none; border-radius: 16px;
+      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
+      padding: 28px; margin-bottom: 24px;
+      display: flex; align-items: center;
+      justify-content: space-between; gap: 20px;
+      transition: border 0.3s;
+    }
+    .status-hero.up   { background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%); border-left: 5px solid #28a745; }
+    .status-hero.down { background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%); border-left: 5px solid #dc3545; }
+    .status-hero.loading { background: #fff; border-left: 5px solid #6c757d; }
+
+    .hero-icon {
+      width: 68px; height: 68px; border-radius: 18px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; flex-shrink: 0;
+    }
+    .hero-icon.up      { background: #d4edda; color: #155724; }
+    .hero-icon.down    { background: #f8d7da; color: #721c24; }
+    .hero-icon.loading { background: #e9ecef; color: #6c757d; }
+
+    .hero-domain { font-size: 20px; font-weight: 700; color: #212529; }
+    .hero-meta   { font-size: 13px; color: #6c757d; margin-top: 4px; }
+
+    .hero-metrics { display: flex; gap: 32px; flex-shrink: 0; }
+    .hm { text-align: center; }
+    .hm-val { font-size: 22px; font-weight: 700; line-height: 1; }
+    .hm-lbl { font-size: 11px; color: #adb5bd; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; }
+
+    /* URL INPUT BAR */
+    .url-bar {
+      background: #fff; border-radius: 14px; padding: 20px 22px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07); margin-bottom: 24px;
+      display: flex; gap: 10px; align-items: center;
+    }
+    .url-bar label { font-size: 13px; color: #6c757d; font-weight: 600; flex-shrink: 0; white-space: nowrap; }
+    .url-bar input {
+      flex: 1; border: 1px solid #dee2e6; border-radius: 10px;
+      padding: 10px 14px; font-size: 14px; outline: none; transition: border-color 0.2s;
+      background: #f8f9fa;
+    }
+    .url-bar input:focus { border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13,110,253,0.1); background: #fff; }
+    .url-bar .active-tag {
+      font-size: 12px; color: #0d6efd; background: #e7f1ff;
+      border: 1px solid #b6d4fe; padding: 4px 10px; border-radius: 6px;
+      flex-shrink: 0; max-width: 220px; overflow: hidden;
+      text-overflow: ellipsis; white-space: nowrap;
+    }
+
+    /* SECTION CARD */
+    .section-card {
+      background: #fff; border-radius: 14px; padding: 22px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.07); margin-bottom: 24px;
+    }
+    .sec-title { font-size: 15px; font-weight: 700; color: #212529; margin-bottom: 3px; }
+    .sec-sub   { font-size: 12px; color: #adb5bd; margin-bottom: 16px; }
+
+    /* UPTIME BAR */
+    .uptime-bar { display: flex; gap: 3px; height: 34px; }
+    .seg { flex: 1; border-radius: 4px; cursor: default; transition: transform 0.15s; }
+    .seg:hover { transform: scaleY(1.12); }
+    .seg.up      { background: #28a745; }
+    .seg.down    { background: #dc3545; }
+    .seg.loading { background: #dee2e6; animation: shimmer 1.5s infinite; }
+    @keyframes shimmer { 0%,100%{opacity:0.5;} 50%{opacity:1;} }
+
+    /* LIVE BADGE */
+    .live-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #d4edda; border: 1px solid #c3e6cb;
+      color: #155724; padding: 4px 12px; border-radius: 100px;
+      font-size: 12px; font-weight: 600;
+    }
+    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #28a745; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+    /* LOG */
+    .log-scroll { max-height: 260px; overflow-y: auto; }
+    .log-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 8px 0; border-bottom: 1px solid #f1f3f5;
+      font-size: 13px;
+    }
+    .log-item:last-child { border-bottom: none; }
+    .log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink:0; margin-right: 9px; }
+    .log-dot.up   { background: #28a745; }
+    .log-dot.down { background: #dc3545; }
+
+    /* CHART */
+    .chart-wrap { position: relative; height: 220px; }
+
+    /* DONUT LEGEND */
+    .dleg { display: flex; gap: 16px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+    .dleg-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #495057; }
+    .dleg-dot  { width: 10px; height: 10px; border-radius: 2px; }
+
+    /* SPINNER */
+    .spin {
+      display: inline-block; width: 16px; height: 16px;
+      border: 2px solid #dee2e6; border-top-color: #0d6efd;
+      border-radius: 50%; animation: sp 0.8s linear infinite; vertical-align: middle;
+    }
+    @keyframes sp { to { transform: rotate(360deg); } }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .status-hero { flex-direction: column; align-items: flex-start; }
+      .hero-metrics { gap: 16px; }
+      .url-bar { flex-direction: column; align-items: stretch; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR (index.html dagi kabi) -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container">
+    <a class="navbar-brand" href="{{ url_for('index') }}">
+      <i class="fas fa-shield-alt"></i> SecureScan
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Bosh sahifa</a></li>
+        {% if session.get('user_id') %}
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Boshqaruv paneli</a></li>
+        <li class="nav-item"><a class="nav-link active" href="{{ url_for('monitoring') }}">Monitoring</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('scan') }}">Skanerlash</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('history') }}">Tarix</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Chiqish</a></li>
+        {% else %}
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('login') }}">Kirish</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('register') }}">Ro'yxatdan o'tish</a></li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- FLASH -->
+<div class="container mt-3">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+      {{ message }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endif %}
+  {% endwith %}
+</div>
+
+<!-- PAGE CONTENT -->
+<div class="container my-4">
+
+  <!-- PAGE HEADER -->
+  <div class="d-flex align-items-center justify-content-between mb-4">
+    <div>
+      <h2 class="fw-bold mb-1"><i class="fas fa-satellite-dish text-primary me-2"></i>Monitoring Tizimi</h2>
+      <p class="text-muted mb-0" style="font-size:14px;">Har 30 soniyada avtomatik yangilanadi</p>
+    </div>
+    <span class="live-badge"><span class="live-dot"></span> JONLI</span>
+  </div>
+
+  <!-- URL INPUT BAR -->
+  <div class="url-bar">
+    <label><i class="fas fa-link me-1 text-primary"></i> URL:</label>
+    <input type="text" id="urlInput"
+           placeholder="kun.uz yoki https://saytingiz.uz"
+           value="{{ default_url }}">
+    <span class="active-tag" id="currentTag">{{ default_url }}</span>
+    <button class="btn btn-primary px-4" id="startBtn" onclick="startMonitoring()">
+      <i class="fas fa-play me-1"></i> Kuzatish
+    </button>
+  </div>
+
+  <!-- STATUS HERO -->
+  <div class="status-hero loading" id="statusCard">
+    <div class="d-flex align-items-center gap-3">
+      <div class="hero-icon loading" id="heroIcon">
+        <i class="fas fa-circle-notch fa-spin"></i>
+      </div>
+      <div>
+        <div class="hero-domain" id="heroDomain">{{ default_url }}</div>
+        <div class="hero-meta" id="heroMeta">Tekshirilmoqda...</div>
+      </div>
+    </div>
+    <div class="hero-metrics">
+      <div class="hm">
+        <div class="hm-val text-primary" id="hResponse">—</div>
+        <div class="hm-lbl">Javob vaqti</div>
+      </div>
+      <div class="hm">
+        <div class="hm-val text-success" id="hUptime">—%</div>
+        <div class="hm-lbl">Uptime 24s</div>
+      </div>
+      <div class="hm">
+        <div class="hm-val text-warning" id="hSSL">—</div>
+        <div class="hm-lbl">SSL kun</div>
+      </div>
+      <div class="hm">
+        <div class="hm-val text-secondary" id="hCode">—</div>
+        <div class="hm-lbl">HTTP kod</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAT CARDS ROW -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+      <div class="stat-card bg-white">
+        <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="fas fa-check-circle"></i></div>
+        <div class="stat-val text-success" id="sUptime">—%</div>
+        <div class="stat-lbl">Uptime</div>
+        <div class="stat-meta" id="sUptimeMeta">Yuklanmoqda...</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card bg-white">
+        <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="fas fa-tachometer-alt"></i></div>
+        <div class="stat-val text-primary" id="sAvg">—ms</div>
+        <div class="stat-lbl">O'rtacha javob</div>
+        <div class="stat-meta" id="sAvgMeta">Min / Max</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card bg-white">
+        <div class="stat-icon bg-info bg-opacity-10 text-info"><i class="fas fa-clipboard-list"></i></div>
+        <div class="stat-val text-info" id="sTotal">—</div>
+        <div class="stat-lbl">Jami tekshiruv</div>
+        <div class="stat-meta">So'nggi 24 soat</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-card bg-white">
+        <div class="stat-icon bg-danger bg-opacity-10 text-danger"><i class="fas fa-exclamation-triangle"></i></div>
+        <div class="stat-val text-danger" id="sDown">—</div>
+        <div class="stat-lbl">Uzilishlar</div>
+        <div class="stat-meta">So'nggi 24 soat</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- UPTIME BAR -->
+  <div class="section-card">
+    <div class="sec-title"><i class="fas fa-history text-primary me-2"></i>Uptime Tarixi</div>
+    <div class="sec-sub">Har blok = 1 tekshiruv &nbsp;·&nbsp; 🟢 Ishlaydi &nbsp;·&nbsp; 🔴 Ishlamaydi</div>
+    <div class="uptime-bar" id="uptimeBar">
+      {% for i in range(40) %}<div class="seg loading"></div>{% endfor %}
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-8">
+      <div class="section-card mb-0">
+        <div class="sec-title"><i class="fas fa-chart-line text-primary me-2"></i>Javob Vaqti Grafigi</div>
+        <div class="sec-sub">So'nggi tekshiruvlardagi millisekund ko'rsatkichlari</div>
+        <div class="chart-wrap"><canvas id="responseChart"></canvas></div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="section-card mb-0">
+        <div class="sec-title"><i class="fas fa-chart-pie text-primary me-2"></i>Holat Nisbati</div>
+        <div class="sec-sub">Ishlaydi vs Ishlamaydi</div>
+        <div class="chart-wrap" style="height:180px;"><canvas id="donutChart"></canvas></div>
+        <div class="dleg">
+          <div class="dleg-item"><div class="dleg-dot" style="background:#28a745;"></div>Ishlaydi (<span id="legUp">—</span>)</div>
+          <div class="dleg-item"><div class="dleg-dot" style="background:#dc3545;"></div>Ishlamaydi (<span id="legDown">—</span>)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- LOG + HOURLY -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-6">
+      <div class="section-card mb-0">
+        <div class="sec-title"><i class="fas fa-list-alt text-primary me-2"></i>So'nggi Tekshiruvlar</div>
+        <div class="sec-sub" style="margin-bottom:12px;">Real-vaqt log</div>
+        <div class="log-scroll" id="logList">
+          <div class="text-muted" style="font-size:13px;">Yuklanmoqda...</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-6">
+      <div class="section-card mb-0">
+        <div class="sec-title"><i class="fas fa-clock text-primary me-2"></i>Soatlik Ko'rsatkich</div>
+        <div class="sec-sub" style="margin-bottom:0;">So'nggi 24 soat</div>
+        <div class="chart-wrap" style="height:240px;"><canvas id="hourlyChart"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<!-- FOOTER -->
+<footer class="bg-dark text-white py-4 mt-4">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-6">
+        <h5><i class="fas fa-shield-alt"></i> SecureScan</h5>
+        <p class="mb-0">Zamonaviy tarmoq xavfsizligi skaneri</p>
+      </div>
+      <div class="col-md-6 text-md-end">
+        <p class="mb-0">&copy; 2025 SecureScan. Barcha huquqlar himoyalangan.</p>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+  let currentUrl   = "{{ default_url }}";
+  let refreshTimer = null;
+  let rChart = null, dChart = null, hChart = null;
+
+  // ─── START / CHANGE URL ────────────────────────────────────
+  function startMonitoring() {
+    let val = document.getElementById('urlInput').value.trim();
+    if (!val) val = 'https://kun.uz';
+    if (!val.startsWith('http://') && !val.startsWith('https://')) val = 'https://' + val;
+    currentUrl = val;
+
+    document.getElementById('currentTag').textContent = val.replace(/https?:\/\//,'');
+    document.getElementById('heroDomain').textContent  = val;
+    document.getElementById('heroMeta').textContent    = 'Tekshirilmoqda...';
+
+    const card = document.getElementById('statusCard');
+    card.className = 'status-hero loading';
+    const icon = document.getElementById('heroIcon');
+    icon.className = 'hero-icon loading';
+    icon.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+
+    document.getElementById('uptimeBar').innerHTML =
+      Array(40).fill('<div class="seg loading"></div>').join('');
+
+    if (refreshTimer) clearInterval(refreshTimer);
+    doCheck(); loadStats();
+    refreshTimer = setInterval(() => { doCheck(); loadStats(); }, 30000);
+  }
+
+  // ─── CHECK ─────────────────────────────────────────────────
+  async function doCheck() {
+    try {
+      const res  = await fetch('/monitoring/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: currentUrl })
+      });
+      const d = await res.json();
+      updateHero(d);
+    } catch(e) { console.error(e); }
+  }
+
+  function updateHero(d) {
+    const card = document.getElementById('statusCard');
+    const icon = document.getElementById('heroIcon');
+
+    if (d.is_up) {
+      card.className = 'status-hero up';
+      icon.className = 'hero-icon up';
+      icon.innerHTML = '<i class="fas fa-check"></i>';
+      document.getElementById('heroMeta').textContent =
+        `HTTP ${d.status_code} · Javob: ${d.response_time}ms` +
+        (d.ssl_days_left ? ` · SSL ${d.ssl_days_left} kun qoldi` : '');
+    } else {
+      card.className = 'status-hero down';
+      icon.className = 'hero-icon down';
+      icon.innerHTML = '<i class="fas fa-times"></i>';
+      document.getElementById('heroMeta').textContent = '⚠️ ' + (d.error || 'Xatolik yuz berdi');
+    }
+
+    document.getElementById('hResponse').textContent = d.response_time ? d.response_time + 'ms' : '—';
+    document.getElementById('hResponse').className   = 'hm-val ' + (d.is_up ? 'text-success' : 'text-danger');
+    document.getElementById('hCode').textContent     = d.status_code || '—';
+    document.getElementById('hSSL').textContent      = d.ssl_days_left ? d.ssl_days_left + ' kun' : '—';
+  }
+
+  // ─── LOAD STATS ────────────────────────────────────────────
+  async function loadStats() {
+    try {
+      const res  = await fetch(`/monitoring/stats?url=${encodeURIComponent(currentUrl)}&hours=24`);
+      const data = await res.json();
+      updateStatCards(data.stats);
+      updateUptimeBar(data.history);
+      updateLog(data.history);
+      drawCharts(data.chart, data.stats, data.hourly);
+    } catch(e) { console.error(e); }
+  }
+
+  function updateStatCards(s) {
+    const pct = s.uptime_percent;
+    const el  = document.getElementById('sUptime');
+    el.textContent = pct + '%';
+    el.className   = 'stat-val ' + (pct>=99?'text-success':pct>=90?'text-warning':'text-danger');
+    document.getElementById('sUptimeMeta').textContent = `${s.up_count} ok / ${s.total_checks} jami`;
+    document.getElementById('sAvg').textContent        = (s.avg_response_time||0) + 'ms';
+    document.getElementById('sAvgMeta').textContent    = `Min:${s.min_response_time}ms · Max:${s.max_response_time}ms`;
+    document.getElementById('sTotal').textContent      = s.total_checks;
+    document.getElementById('sDown').textContent       = s.down_count;
+    document.getElementById('hUptime').textContent     = pct + '%';
+    document.getElementById('legUp').textContent       = s.up_count;
+    document.getElementById('legDown').textContent     = s.down_count;
+  }
+
+  function updateUptimeBar(history) {
+    const bar = document.getElementById('uptimeBar');
+    if (!history || !history.length) {
+      bar.innerHTML = '<div class="text-muted" style="font-size:13px;padding:8px 0;">Hali ma\'lumot yo\'q</div>';
+      return;
+    }
+    bar.innerHTML = history.map(h => {
+      const tip = `${h.checked_at?h.checked_at.slice(11,16):''} · ${h.is_up?'✓ '+(h.response_time||0)+'ms':'✕ '+(h.error||'Xato')}`;
+      return `<div class="seg ${h.is_up?'up':'down'}" title="${tip}"></div>`;
+    }).join('');
+  }
+
+  function updateLog(history) {
+    const el = document.getElementById('logList');
+    if (!history || !history.length) {
+      el.innerHTML = '<div class="text-muted" style="font-size:13px;">Hali ma\'lumot yo\'q</div>';
+      return;
+    }
+    el.innerHTML = [...history].reverse().slice(0,14).map(h => `
+      <div class="log-item">
+        <div class="d-flex align-items-center">
+          <div class="log-dot ${h.is_up?'up':'down'}"></div>
+          <span class="${h.is_up?'text-success fw-semibold':'text-danger fw-semibold'}">
+            ${h.is_up?'▲ ISHLAYDI':'▼ ISHLAMAYDI'}
+          </span>
+          ${h.response_time?`<span class="text-muted ms-2" style="font-size:12px;">${h.response_time}ms</span>`:''}
+          ${h.error?`<span class="text-danger ms-2" style="font-size:12px;">${h.error}</span>`:''}
+        </div>
+        <span class="text-muted" style="font-size:12px;">${h.checked_at?h.checked_at.slice(11,16):''}</span>
+      </div>`).join('');
+  }
+
+  function drawCharts(cd, stats, hourly) {
+    // Line chart
+    const rCtx = document.getElementById('responseChart').getContext('2d');
+    if (rChart) rChart.destroy();
+    rChart = new Chart(rCtx, {
+      type: 'line',
+      data: {
+        labels: cd.labels,
+        datasets: [{
+          data: cd.response_times, label: 'Javob vaqti (ms)',
+          borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,0.08)',
+          borderWidth: 2, tension: 0.4, fill: true, pointRadius: 4,
+          pointBackgroundColor: cd.statuses.map(s => s ? '#28a745' : '#dc3545'),
+          pointBorderColor: '#fff', pointBorderWidth: 1.5,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: '#f0f0f0' }, ticks: { color: '#6c757d', maxTicksLimit: 8 } },
+          y: { grid: { color: '#f0f0f0' }, ticks: { color: '#6c757d' }, min: 0 }
+        }
+      }
+    });
+
+    // Donut
+    const dCtx = document.getElementById('donutChart').getContext('2d');
+    if (dChart) dChart.destroy();
+    dChart = new Chart(dCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Ishlaydi', 'Ishlamaydi'],
+        datasets: [{
+          data: [stats.uptime_percent, Math.max(100-stats.uptime_percent, 0.01)],
+          backgroundColor: ['#28a745','#dc3545'],
+          borderColor: '#ffffff', borderWidth: 3
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '70%',
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${Number(ctx.raw).toFixed(1)}%` } }
+        }
+      }
+    });
+
+    // Hourly
+    if (hourly && hourly.length) {
+      const hCtx = document.getElementById('hourlyChart').getContext('2d');
+      if (hChart) hChart.destroy();
+      hChart = new Chart(hCtx, {
+        type: 'bar',
+        data: {
+          labels: hourly.map(h => h.hour + ':00'),
+          datasets: [
+            {
+              label: 'Uptime %',
+              data: hourly.map(h => h.uptime),
+              backgroundColor: hourly.map(h =>
+                h.uptime>=99 ? 'rgba(40,167,69,0.75)' :
+                h.uptime>=90 ? 'rgba(255,193,7,0.75)' : 'rgba(220,53,69,0.75)'),
+              borderRadius: 5, yAxisID: 'y'
+            },
+            {
+              label: 'Javob (ms)', data: hourly.map(h => h.avg_resp),
+              type: 'line', borderColor: '#0d6efd', backgroundColor: 'transparent',
+              borderWidth: 2, tension: 0.4, pointRadius: 3, yAxisID: 'y2'
+            }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#495057', font: { size: 11 } } } },
+          scales: {
+            x:  { grid: { color: '#f0f0f0' }, ticks: { color: '#6c757d' } },
+            y:  { grid: { color: '#f0f0f0' }, ticks: { color: '#6c757d' }, min: 0, max: 100,
+                  title: { display: true, text: 'Uptime %', color: '#6c757d', font: { size: 11 } } },
+            y2: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#0d6efd' },
+                  title: { display: true, text: 'ms', color: '#0d6efd', font: { size: 11 } } }
+          }
+        }
+      });
+    }
+  }
+
+  // Enter bilan boshlash
+  document.getElementById('urlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') startMonitoring();
+  });
+
+  // Sahifa ochilganda darhol boshlash
+  window.addEventListener('DOMContentLoaded', () => {
+    doCheck(); loadStats();
+    refreshTimer = setInterval(() => { doCheck(); loadStats(); }, 30000);
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (refreshTimer) clearInterval(refreshTimer);
+  });
+</script>
+</body>
+</html>

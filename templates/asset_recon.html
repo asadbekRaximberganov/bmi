@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SecureScan — Asset Reconnaissance</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --surface: #ffffff;
+    --border: #e2e8f0;
+    --border-hover: #cbd5e1;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --accent2: #ef4444;
+    --accent2-light: #fef2f2;
+    --accent3: #16a34a;
+    --accent3-light: #f0fdf4;
+    --warn: #d97706;
+    --warn-light: #fffbeb;
+    --text: #1e293b;
+    --text-mid: #64748b;
+    --text-dim: #94a3b8;
+    --mono: 'JetBrains Mono', monospace;
+    --ui: 'Inter', sans-serif;
+    --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px rgba(0,0,0,0.04);
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: var(--ui); min-height: 100vh; font-size: 14px; }
+  a { text-decoration: none; color: inherit; }
+
+  /* NAVBAR */
+  .navbar { position: fixed; left: 0; top: 0; right: 0; height: 56px;
+    background: #2563eb; display: flex; align-items: center;
+    padding: 0 28px; z-index: 99; box-shadow: 0 2px 8px rgba(37,99,235,0.3); }
+  .navbar-brand { display: flex; align-items: center; gap: 8px;
+    color: white; font-size: 16px; font-weight: 700; text-decoration: none; }
+  .navbar-brand-icon { font-size: 20px; }
+  .navbar-links { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+  .nav-link { color: rgba(255,255,255,0.85); font-size: 14px; font-weight: 500;
+    padding: 6px 14px; border-radius: 6px; text-decoration: none; transition: all 0.15s; }
+  .nav-link:hover { color: white; background: rgba(255,255,255,0.15); }
+  .nav-link.active { color: white; font-weight: 700;
+    border-bottom: 2px solid white; padding-bottom: 4px; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  /* MAIN */
+  .main { margin-left: 0; margin-top: 56px; padding: 28px; }
+  .page-title { font-size: 22px; font-weight: 700; color: var(--text); letter-spacing: -0.4px; margin-bottom: 4px; }
+  .page-sub { font-size: 13px; color: var(--text-mid); margin-bottom: 24px; }
+
+  /* CARD */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    box-shadow: var(--shadow); overflow: hidden; }
+  .card-header { display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--border); background: #fafbfc; }
+  .card-title { font-size: 13px; font-weight: 600; color: var(--text);
+    display: flex; align-items: center; gap: 8px; }
+  .card-title-icon { width: 22px; height: 22px; border-radius: 6px;
+    display: flex; align-items: center; justify-content: center; font-size: 12px; }
+  .icon-blue { background: var(--accent-light); }
+  .icon-red  { background: var(--accent2-light); }
+  .icon-warn { background: var(--warn-light); }
+  .card-body { padding: 20px; }
+
+  /* SCAN */
+  .scan-wrap { margin-bottom: 20px; }
+  .scan-row { display: flex; gap: 10px; align-items: stretch; }
+  .target-input { flex: 1; background: var(--bg); border: 1.5px solid var(--border);
+    border-radius: 8px; color: var(--text); font-family: var(--mono); font-size: 13px;
+    padding: 11px 16px; outline: none; transition: all 0.2s; }
+  .target-input:focus { border-color: var(--accent); background: white; box-shadow: 0 0 0 3px rgba(37,99,235,0.1); }
+  .target-input::placeholder { color: var(--text-dim); }
+  .scan-btn { background: var(--accent); color: white; border: none; border-radius: 8px;
+    padding: 0 24px; font-family: var(--ui); font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap; display: flex; align-items: center; gap: 7px; }
+  .scan-btn:hover { background: #1d4ed8; }
+  .scan-btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  /* PROGRESS */
+  .scan-progress { display: none; margin-bottom: 20px; }
+  .scan-progress.active { display: block; }
+  .progress-wrap { background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 16px 20px; box-shadow: var(--shadow); }
+  .progress-top { display: flex; justify-content: space-between; margin-bottom: 10px; }
+  .progress-label { font-size: 13px; font-weight: 500; color: var(--text); }
+  .progress-pct { font-size: 12px; font-weight: 600; color: var(--accent); font-family: var(--mono); }
+  .progress-track { background: var(--bg); border-radius: 99px; height: 6px; overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #7c3aed);
+    border-radius: 99px; width: 0%; transition: width 0.4s ease; }
+
+  /* STATS */
+  .stats-row { display: none; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px; box-shadow: var(--shadow); }
+  .stat-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .stat-icon-wrap { width: 36px; height: 36px; border-radius: 8px;
+    display: flex; align-items: center; justify-content: center; font-size: 16px; }
+  .stat-num { font-size: 26px; font-weight: 700; letter-spacing: -1px; line-height: 1; }
+  .stat-label { font-size: 12px; color: var(--text-mid); font-weight: 500; }
+
+  /* RESULTS */
+  .results-grid { display: none; grid-template-columns: 1fr 1fr; gap: 18px; }
+  .full-col { grid-column: 1/-1; }
+
+  /* BULK BAR */
+  .bulk-bar { display: flex; align-items: center; gap: 10px; padding: 10px 14px;
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 14px; }
+  .bulk-bar label { display: flex; align-items: center; gap: 7px; font-size: 13px;
+    color: var(--text-mid); cursor: pointer; font-weight: 500; }
+  .bulk-bar label input { accent-color: var(--accent); cursor: pointer; }
+  .bulk-count { font-size: 12px; color: var(--accent); font-weight: 600; margin-left: auto; }
+  .dl-bulk-btn { display: flex; align-items: center; gap: 6px; padding: 6px 14px;
+    background: var(--accent); color: white; border: none; border-radius: 6px;
+    font-size: 12px; font-weight: 600; cursor: pointer; transition: .2s; }
+  .dl-bulk-btn:hover { background: #1d4ed8; }
+  .dl-bulk-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  /* FILTER */
+  .filter-bar { display: flex; gap: 6px; align-items: center; margin-bottom: 14px; flex-wrap: wrap; }
+  .filter-btn { padding: 5px 12px; border: 1.5px solid var(--border); background: white;
+    color: var(--text-mid); border-radius: 6px; font-size: 12px; font-weight: 500; cursor: pointer; transition: .15s; }
+  .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .filter-btn.active { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+  .filter-search { margin-left: auto; background: white; border: 1.5px solid var(--border);
+    border-radius: 6px; color: var(--text); font-size: 12px; padding: 5px 12px;
+    outline: none; width: 160px; transition: .2s; }
+  .filter-search:focus { border-color: var(--accent); }
+  .filter-search::placeholder { color: var(--text-dim); }
+
+  /* ASSET LIST */
+  .asset-list { display: flex; flex-direction: column; gap: 6px; max-height: 380px; overflow-y: auto; }
+  .asset-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+    background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; transition: .15s; }
+  .asset-item:hover { border-color: var(--accent); background: var(--accent-light); }
+  .asset-item input[type=checkbox] { accent-color: var(--accent); cursor: pointer; flex-shrink: 0; }
+  .asset-thumb { width: 34px; height: 34px; background: white; border: 1px solid var(--border);
+    border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+  .asset-url { font-family: var(--mono); font-size: 11px; color: var(--text); flex: 1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .asset-tag { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 4px;
+    flex-shrink: 0; text-transform: uppercase; letter-spacing: .5px; }
+  .tag-img   { background: var(--accent-light);  color: var(--accent); }
+  .tag-vid   { background: var(--accent2-light); color: var(--accent2); }
+  .tag-embed { background: var(--warn-light);    color: var(--warn); }
+
+  /* DL BTN */
+  .dl-btn { flex-shrink: 0; padding: 5px 10px; border: 1.5px solid var(--border);
+    background: white; color: var(--text-mid); border-radius: 6px; font-size: 11px;
+    font-weight: 600; cursor: pointer; transition: .15s; white-space: nowrap; }
+  .dl-btn:hover  { border-color: var(--accent3); color: var(--accent3); background: var(--accent3-light); }
+  .dl-btn.loading { border-color: var(--warn);    color: var(--warn); }
+  .dl-btn.done    { border-color: var(--accent3); color: var(--accent3); background: var(--accent3-light); }
+  .dl-btn.err     { border-color: var(--accent2); color: var(--accent2); }
+
+  /* LEAKAGE */
+  .leak-item { padding: 14px 16px; border: 1.5px solid var(--border); border-radius: 10px;
+    background: white; margin-bottom: 10px; transition: .15s; }
+  .leak-item:hover { box-shadow: var(--shadow-md); }
+  .leak-item.critical { border-left: 4px solid var(--accent2); }
+  .leak-item.warning  { border-left: 4px solid var(--warn); }
+  .leak-item.info     { border-left: 4px solid var(--accent); }
+  .leak-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .leak-type { font-size: 13px; font-weight: 700; color: var(--text); }
+  .sev-badge { font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px;
+    text-transform: uppercase; letter-spacing: .5px; }
+  .sev-critical { background: var(--accent2-light); color: var(--accent2); }
+  .sev-medium   { background: var(--warn-light);    color: var(--warn); }
+  .sev-low      { background: var(--accent-light);  color: var(--accent); }
+  .leak-found-count { margin-left: auto; font-size: 12px; color: var(--text-dim); font-weight: 500; }
+  .leak-desc { font-size: 12px; color: var(--text-mid); margin-bottom: 8px; line-height: 1.5; }
+  .leak-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .leak-chip { font-family: var(--mono); font-size: 11px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 5px; padding: 3px 10px; color: var(--text-mid);
+    cursor: pointer; transition: .15s; max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .leak-chip:hover { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+  /* EMPTY STATE */
+  .empty-state { text-align: center; padding: 36px 20px; color: var(--text-dim); }
+  .empty-icon { font-size: 28px; margin-bottom: 10px; opacity: .5; }
+  .empty-text { font-size: 13px; font-weight: 500; }
+  .empty-sub  { font-size: 12px; margin-top: 4px; }
+
+  /* TOAST */
+  .toast { position: fixed; bottom: 24px; right: 24px; padding: 12px 18px; border-radius: 10px;
+    font-size: 13px; font-weight: 500; z-index: 9999; opacity: 0; transform: translateY(6px);
+    transition: all .25s; pointer-events: none; box-shadow: var(--shadow-md); max-width: 320px; }
+  .toast.show { opacity: 1; transform: translateY(0); }
+  .toast.success { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+  .toast.error   { background: #fef2f2; border: 1px solid #fecaca; color: #dc2626; }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border-hover); border-radius: 99px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+</style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+  <a class="navbar-brand" href="/">
+    <span class="navbar-brand-icon">🛡</span>
+    SecureScan
+  </a>
+  <div class="navbar-links">
+    <a class="nav-link" href="/">Bosh sahifa</a>
+    <a class="nav-link" href="/dashboard">Boshqaruv paneli</a>
+    <a class="nav-link" href="/monitoring">Monitoring</a>
+    <a class="nav-link active" href="/asset_recon">Resurslari aniqlash</a>
+    <a class="nav-link" href="/scan">Skanerlash</a>
+    <a class="nav-link" href="/history">Tarix</a>
+    <a class="nav-link" href="/logout">Chiqish</a>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<main class="main">
+  <div class="page-title">🗂 Asset Reconnaissance</div>
+  <div class="page-sub">Saytdagi barcha rasm, video va sizib chiqqan ma'lumotlarni aniqlang va yuklab oling</div>
+
+  <!-- SCAN INPUT -->
+  <div class="card scan-wrap">
+    <div class="card-header">
+      <div class="card-title">
+        <div class="card-title-icon icon-blue">🎯</div>
+        Maqsad URL
+      </div>
+    </div>
+    <div class="card-body">
+      <div class="scan-row">
+        <input class="target-input" id="targetInput" type="text"
+          placeholder="https://example.uz  yoki  example.uz" />
+        <button class="scan-btn" id="scanBtn" onclick="startScan()">
+          ▶ Skanerlash
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PROGRESS -->
+  <div class="scan-progress" id="scanProgress">
+    <div class="progress-wrap">
+      <div class="progress-top">
+        <span class="progress-label" id="progLabel">Tayyorlanmoqda...</span>
+        <span class="progress-pct" id="progPct">0%</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" id="progBar"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATS -->
+  <div class="stats-row" id="statsRow">
+    <div class="stat-card">
+      <div class="stat-top"><div class="stat-icon-wrap icon-blue">🖼</div></div>
+      <div class="stat-num" id="stat-imgs" style="color:var(--accent)">0</div>
+      <div class="stat-label">Rasmlar topildi</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top"><div class="stat-icon-wrap icon-red">🎞</div></div>
+      <div class="stat-num" id="stat-vids" style="color:var(--accent2)">0</div>
+      <div class="stat-label">Videolar topildi</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top"><div class="stat-icon-wrap icon-warn">⚠️</div></div>
+      <div class="stat-num" id="stat-leaks" style="color:var(--warn)">0</div>
+      <div class="stat-label">Sizib chiqish turlari</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-top"><div class="stat-icon-wrap icon-blue">🔒</div></div>
+      <div class="stat-num" id="stat-risk" style="color:var(--accent3)">—</div>
+      <div class="stat-label">Xavf darajasi</div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="results-grid" id="resultsGrid">
+
+    <!-- IMAGES -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><div class="card-title-icon icon-blue">🖼</div> Rasmlar</div>
+        <span id="img-count" style="font-size:12px;color:var(--accent);font-weight:700;
+          background:var(--accent-light);padding:3px 10px;border-radius:10px">0</span>
+      </div>
+      <div class="card-body">
+        <div class="bulk-bar">
+          <label><input type="checkbox" id="imgSelectAll" onchange="selectAll('img')"> Barchasini tanlash</label>
+          <span class="bulk-count" id="imgSelCount">0 tanlandi</span>
+          <button class="dl-bulk-btn" id="imgBulkBtn" onclick="downloadBulk('images')" disabled>⬇ ZIP</button>
+        </div>
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="filterType(this,'all','img')">Barchasi</button>
+          <button class="filter-btn" onclick="filterType(this,'jpg','img')">JPG</button>
+          <button class="filter-btn" onclick="filterType(this,'png','img')">PNG</button>
+          <button class="filter-btn" onclick="filterType(this,'svg','img')">SVG</button>
+          <input class="filter-search" placeholder="🔍 Qidirish..." oninput="searchAssets(this,'img')"/>
+        </div>
+        <div class="asset-list" id="imgList">
+          <div class="empty-state">
+            <div class="empty-icon">🖼</div>
+            <div class="empty-text">Skanerlash kutilmoqda</div>
+            <div class="empty-sub">URL kiritib skanerlashni boshlang</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- VIDEOS -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><div class="card-title-icon icon-red">🎞</div> Videolar & Media</div>
+        <span id="vid-count" style="font-size:12px;color:var(--accent2);font-weight:700;
+          background:var(--accent2-light);padding:3px 10px;border-radius:10px">0</span>
+      </div>
+      <div class="card-body">
+        <div class="bulk-bar">
+          <label><input type="checkbox" id="vidSelectAll" onchange="selectAll('vid')"> Barchasini tanlash</label>
+          <span class="bulk-count" id="vidSelCount">0 tanlandi</span>
+          <button class="dl-bulk-btn" id="vidBulkBtn" onclick="downloadBulk('videos')" disabled>⬇ ZIP</button>
+        </div>
+        <div class="filter-bar">
+          <button class="filter-btn active" onclick="filterType(this,'all','vid')">Barchasi</button>
+          <button class="filter-btn" onclick="filterType(this,'mp4','vid')">MP4</button>
+          <button class="filter-btn" onclick="filterType(this,'webm','vid')">WEBM</button>
+          <input class="filter-search" placeholder="🔍 Qidirish..." oninput="searchAssets(this,'vid')"/>
+        </div>
+        <div class="asset-list" id="vidList">
+          <div class="empty-state">
+            <div class="empty-icon">🎞</div>
+            <div class="empty-text">Skanerlash kutilmoqda</div>
+            <div class="empty-sub">URL kiritib skanerlashni boshlang</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LEAKAGE -->
+    <div class="card full-col">
+      <div class="card-header">
+        <div class="card-title"><div class="card-title-icon icon-warn">⚠️</div> Ma'lumot sizib chiqishi (Data Leakage)</div>
+        <span id="leak-count" style="font-size:12px;color:var(--warn);font-weight:700;
+          background:var(--warn-light);padding:3px 10px;border-radius:10px">—</span>
+      </div>
+      <div class="card-body">
+        <div id="leakList">
+          <div class="empty-state">
+            <div class="empty-icon">🔐</div>
+            <div class="empty-text">Skanerlash kutilmoqda</div>
+            <div class="empty-sub">Skanerlash tugagach natijalar shu yerda ko'rinadi</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let allImages=[], allVideos=[], selectedImgs=new Set(), selectedVids=new Set(), progInterval=null;
+
+async function startScan() {
+  const url = document.getElementById('targetInput').value.trim();
+  if (!url) {
+    document.getElementById('targetInput').style.borderColor='var(--accent2)';
+    setTimeout(()=>document.getElementById('targetInput').style.borderColor='var(--border)',1500);
+    return;
+  }
+  document.getElementById('scanBtn').disabled=true;
+  document.getElementById('statsRow').style.display='none';
+  document.getElementById('resultsGrid').style.display='none';
+  selectedImgs.clear(); selectedVids.clear(); updateBulkBtns();
+  document.getElementById('scanProgress').classList.add('active');
+  document.getElementById('progBar').style.width='0%';
+  animateProgress();
+  try {
+    const resp = await fetch('/asset_recon/scan', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({url})
+    });
+    const data = await resp.json();
+    clearInterval(progInterval);
+    document.getElementById('progBar').style.width='100%';
+    document.getElementById('progPct').textContent='100%';
+    setTimeout(()=>{
+      document.getElementById('scanProgress').classList.remove('active');
+      if(data.error){ showToast('❌ '+data.error,'error'); document.getElementById('scanBtn').disabled=false; return; }
+      allImages=data.images||[]; allVideos=data.videos||[];
+      renderStats(data); renderImages(allImages); renderVideos(allVideos); renderLeakage(data.sensitive_text||[]);
+      document.getElementById('statsRow').style.display='grid';
+      document.getElementById('resultsGrid').style.display='grid';
+      showToast('✅ Skanerlash yakunlandi','success');
+      document.getElementById('scanBtn').disabled=false;
+    },300);
+  } catch(e) {
+    clearInterval(progInterval);
+    document.getElementById('scanProgress').classList.remove('active');
+    showToast('❌ Server bilan ulanishda xatolik','error');
+    document.getElementById('scanBtn').disabled=false;
+  }
+}
+
+function animateProgress() {
+  let pct=0; clearInterval(progInterval);
+  const steps=['HTML yuklanmoqda...','Rasmlar qidirilmoqda...','Videolar skanerlanmoqda...','Data leakage tekshirilmoqda...'];
+  progInterval=setInterval(()=>{
+    pct+=Math.random()*14+3; if(pct>90)pct=90;
+    document.getElementById('progBar').style.width=pct+'%';
+    document.getElementById('progPct').textContent=Math.round(pct)+'%';
+    document.getElementById('progLabel').textContent=steps[Math.min(Math.floor(pct/25),3)];
+  },380);
+}
+
+function renderStats(data) {
+  document.getElementById('stat-imgs').textContent=data.images.length;
+  document.getElementById('stat-vids').textContent=data.videos.length;
+  document.getElementById('stat-leaks').textContent=(data.sensitive_text||[]).length;
+  document.getElementById('img-count').textContent=data.images.length;
+  document.getElementById('vid-count').textContent=data.videos.length;
+  const hasCrit=(data.sensitive_text||[]).some(l=>l.severity==='critical');
+  const hasMed=(data.sensitive_text||[]).some(l=>l.severity==='medium');
+  const el=document.getElementById('stat-risk');
+  if(hasCrit){el.textContent='HIGH';el.style.color='var(--accent2)';}
+  else if(hasMed){el.textContent='MED';el.style.color='var(--warn)';}
+  else{el.textContent='LOW';el.style.color='var(--accent3)';}
+}
+
+function renderImages(items) {
+  const list=document.getElementById('imgList');
+  if(!items.length){list.innerHTML='<div class="empty-state"><div class="empty-icon">🖼</div><div class="empty-text">Rasm topilmadi</div></div>';return;}
+  list.innerHTML=items.map((img,i)=>`
+    <div class="asset-item">
+      <input type="checkbox" data-url="${esc(img.url)}" data-type="img" onchange="toggleSelect(this,'img')" ${selectedImgs.has(img.url)?'checked':''}>
+      <div class="asset-thumb">${imgEmoji(img.type)}</div>
+      <div class="asset-url" title="${esc(img.url)}">${esc(img.url)}</div>
+      <span class="asset-tag tag-img">${(img.type||'IMG').toUpperCase()}</span>
+      <button class="dl-btn" id="dlimg${i}" onclick="downloadSingle('${esc(img.url)}','dlimg${i}')">⬇ Yuklab olish</button>
+    </div>`).join('');
+}
+
+function renderVideos(items) {
+  const list=document.getElementById('vidList');
+  if(!items.length){list.innerHTML='<div class="empty-state"><div class="empty-icon">🎞</div><div class="empty-text">Video topilmadi</div></div>';return;}
+  list.innerHTML=items.map((v,i)=>`
+    <div class="asset-item">
+      <input type="checkbox" data-url="${esc(v.url)}" data-type="vid" onchange="toggleSelect(this,'vid')" ${selectedVids.has(v.url)?'checked':''}>
+      <div class="asset-thumb">🎞</div>
+      <div class="asset-url" title="${esc(v.url)}">${esc(v.url)}</div>
+      <span class="asset-tag ${v.type==='embed'?'tag-embed':'tag-vid'}">${(v.type||'VIDEO').toUpperCase()}</span>
+      ${v.type==='embed'
+        ?`<button class="dl-btn" onclick="window.open('${esc(v.url)}','_blank')">↗ Ochish</button>`
+        :`<button class="dl-btn" id="dlvid${i}" onclick="downloadSingle('${esc(v.url)}','dlvid${i}')">⬇ Yuklab olish</button>`}
+    </div>`).join('');
+}
+
+function renderLeakage(items) {
+  const list=document.getElementById('leakList');
+  const total=items.reduce((a,i)=>a+(i.found_count||0),0);
+  document.getElementById('leak-count').textContent=total+' topildi';
+  if(!items.length){
+    list.innerHTML='<div class="empty-state"><div class="empty-icon">✅</div><div class="empty-text">Sizib chiqish topilmadi</div><div class="empty-sub">Sayt ma\'lumotlari himoyalangan ko\'rinadi</div></div>';
+    return;
+  }
+  list.innerHTML=items.map(leak=>`
+    <div class="leak-item ${leak.severity==='critical'?'critical':leak.severity==='medium'?'warning':'info'}">
+      <div class="leak-head">
+        <div class="leak-type">${esc(leak.type)}</div>
+        <span class="sev-badge ${leak.severity==='critical'?'sev-critical':leak.severity==='medium'?'sev-medium':'sev-low'}">${(leak.severity||'low').toUpperCase()}</span>
+        <div class="leak-found-count">${leak.found_count} ta topildi</div>
+      </div>
+      <div class="leak-desc">${esc(leak.description||'')}</div>
+      <div class="leak-chips">${(leak.examples||[]).map(e=>`<span class="leak-chip" onclick="copyText('${esc(e)}')" title="Nusxalash">${esc(e)}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+async function downloadSingle(fileUrl, btnId) {
+  const btn=document.getElementById(btnId); if(!btn)return;
+  btn.textContent='⟳ Yuklanmoqda...'; btn.classList.add('loading'); btn.disabled=true;
+  try {
+    const resp=await fetch('/asset_recon/download/single',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({url:fileUrl})});
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error||'Xatolik');}
+    const cd=resp.headers.get('Content-Disposition')||'';
+    const m=cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+    const filename=m?m[1].replace(/['"]/g,''):'download';
+    const blob=await resp.blob();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); URL.revokeObjectURL(a.href);
+    btn.textContent='✓ Yuklandi'; btn.classList.remove('loading'); btn.classList.add('done');
+    showToast('✅ '+filename+' yuklandi','success');
+  } catch(e) {
+    btn.textContent='✗ Xatolik'; btn.classList.remove('loading'); btn.classList.add('err'); btn.disabled=false;
+    showToast('❌ '+e.message,'error');
+    setTimeout(()=>{btn.textContent='⬇ Yuklab olish';btn.classList.remove('err');},3000);
+  }
+}
+
+async function downloadBulk(folder) {
+  const urls=folder==='images'?[...selectedImgs]:[...selectedVids];
+  if(!urls.length){showToast('Birorta fayl tanlanmagan','error');return;}
+  const btn=document.getElementById(folder==='images'?'imgBulkBtn':'vidBulkBtn');
+  btn.textContent='⟳ ZIP tayyorlanmoqda...'; btn.disabled=true;
+  try {
+    const resp=await fetch('/asset_recon/download/bulk',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({urls,folder})});
+    if(!resp.ok){const e=await resp.json();throw new Error(e.error||'Xatolik');}
+    const cd=resp.headers.get('Content-Disposition')||'';
+    const m=cd.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/);
+    const filename=m?m[1].replace(/['"]/g,''):folder+'.zip';
+    const blob=await resp.blob();
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; a.click(); URL.revokeObjectURL(a.href);
+    showToast('✅ '+urls.length+' ta fayl ZIP yuklandi','success');
+  } catch(e){showToast('❌ '+e.message,'error');}
+  btn.textContent='⬇ ZIP yuklab olish'; btn.disabled=false;
+}
+
+function toggleSelect(cb,type){const set=type==='img'?selectedImgs:selectedVids;cb.checked?set.add(cb.dataset.url):set.delete(cb.dataset.url);updateBulkBtns();}
+function selectAll(type){const cb=document.getElementById(type==='img'?'imgSelectAll':'vidSelectAll');const set=type==='img'?selectedImgs:selectedVids;document.querySelectorAll(`input[data-type="${type}"]`).forEach(c=>{c.checked=cb.checked;cb.checked?set.add(c.dataset.url):set.delete(c.dataset.url);});updateBulkBtns();}
+function updateBulkBtns(){document.getElementById('imgSelCount').textContent=selectedImgs.size+' tanlandi';document.getElementById('vidSelCount').textContent=selectedVids.size+' tanlandi';document.getElementById('imgBulkBtn').disabled=selectedImgs.size===0;document.getElementById('vidBulkBtn').disabled=selectedVids.size===0;}
+function filterType(btn,ext,type){btn.parentElement.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));btn.classList.add('active');const items=type==='img'?allImages:allVideos;const f=ext==='all'?items:items.filter(i=>(i.type||'').toLowerCase()===ext);type==='img'?renderImages(f):renderVideos(f);}
+function searchAssets(inp,type){const q=inp.value.toLowerCase();const items=type==='img'?allImages:allVideos;type==='img'?renderImages(items.filter(i=>i.url.toLowerCase().includes(q))):renderVideos(items.filter(i=>i.url.toLowerCase().includes(q)));}
+function imgEmoji(ext){return{jpg:'🖼',jpeg:'🖼',png:'🖼',svg:'◈',gif:'🎠',webp:'🖼'}[ext]||'🖼';}
+function esc(str){return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
+function copyText(text){navigator.clipboard.writeText(text).then(()=>showToast('📋 Nusxalandi: '+text,'success')).catch(()=>{});}
+function showToast(msg,type='success'){const t=document.getElementById('toast');t.textContent=msg;t.className='toast show '+type;clearTimeout(t._t);t._t=setTimeout(()=>{t.className='toast';},3000);}
+</script>
+</body>
+</html>
