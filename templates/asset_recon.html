@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SecureScan — Asset Reconnaissance</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!-- Bootstrap CSS (agar yo'q bo'lsa) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 <style>
   :root {
     --bg: #f5f7fa;
@@ -200,19 +203,25 @@
 <body>
 
 <!-- NAVBAR -->
-<nav class="navbar">
-  <a class="navbar-brand" href="/">
-    <span class="navbar-brand-icon">🛡</span>
-    SecureScan
-  </a>
-  <div class="navbar-links">
-    <a class="nav-link" href="/">Bosh sahifa</a>
-    <a class="nav-link" href="/dashboard">Boshqaruv paneli</a>
-    <a class="nav-link" href="/monitoring">Monitoring</a>
-    <a class="nav-link active" href="/asset_recon">Resurslari aniqlash</a>
-    <a class="nav-link" href="/scan">Skanerlash</a>
-    <a class="nav-link" href="/history">Tarix</a>
-    <a class="nav-link" href="/logout">Chiqish</a>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <i class="fas fa-shield-alt"></i> SecureScan
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        <li class="nav-item"><a class="nav-link" href="/">Bosh sahifa</a></li>
+        <li class="nav-item"><a class="nav-link" href="/dashboard">Boshqaruv paneli</a></li>
+        <li class="nav-item"><a class="nav-link" href="/monitoring">Monitoring</a></li>
+        <li class="nav-item"><a class="nav-link active" href="/asset_recon">Resurslari aniqlash</a></li>
+        <li class="nav-item"><a class="nav-link" href="/scan">Skanerlash</a></li>
+        <li class="nav-item"><a class="nav-link" href="/history">Tarix</a></li>
+        <li class="nav-item"><a class="nav-link" href="/logout">Chiqish</a></li>
+      </ul>
+    </div>
   </div>
 </nav>
 

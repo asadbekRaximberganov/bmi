@@ -6,7 +6,7 @@ import json
 import hashlib
 import re
 import subprocess
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import os
 import sqlite3
 from werkzeug.utils import secure_filename
@@ -22,6 +22,13 @@ import io
 
 app = Flask(__name__)
 app.secret_key = os.urandom(24)
+
+# ─── TOSHKENT VAQT ZONASI (UTC+5) ───────────────────────────
+TASHKENT_TZ = timezone(timedelta(hours=5))
+
+def now_tashkent():
+    """Toshkent vaqtida hozirgi vaqtni qaytaradi"""
+    return datetime.now(TASHKENT_TZ).strftime('%Y-%m-%d %H:%M:%S')
 
 # ─── MONITORING GLOBAL ───────────────────────────────────────
 monitoring_data = {}
@@ -116,7 +123,7 @@ def check_website_status(url):
         'response_time': None,
         'ssl_days_left': None,
         'error': None,
-        'checked_at': datetime.now().isoformat()
+        'checked_at': now_tashkent()  # Toshkent vaqti
     }
     try:
         start_time = time.time()
@@ -138,7 +145,7 @@ def check_website_status(url):
             except:
                 result['ssl_days_left'] = None
     except requests.ConnectionError:
-        result['error'] = 'Ulanib bo\'lmadi'
+        result['error'] = "Ulanib bo'lmadi"
     except requests.Timeout:
         result['error'] = 'Kutish vaqti tugadi (timeout)'
     except Exception as e:
@@ -150,17 +157,19 @@ def save_monitoring_log(result):
     try:
         conn = sqlite3.connect('security_scanner.db')
         cursor = conn.cursor()
+        tashkent_time = now_tashkent()  # Toshkent vaqti
         cursor.execute("""
             INSERT INTO monitoring_logs
-            (url, status_code, response_time, is_up, ssl_days_left, error)
-            VALUES (?, ?, ?, ?, ?, ?)
+            (url, status_code, response_time, is_up, ssl_days_left, error, checked_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (
             result['url'],
             result.get('status_code'),
             result.get('response_time'),
             1 if result.get('is_up') else 0,
             result.get('ssl_days_left'),
-            result.get('error')
+            result.get('error'),
+            tashkent_time
         ))
         conn.commit()
         conn.close()
@@ -192,14 +201,16 @@ def get_uptime_stats(url, hours=24):
     try:
         conn = sqlite3.connect('security_scanner.db')
         cursor = conn.cursor()
+        # Toshkent vaqti asosida so'nggi N soatni hisoblash
+        since_time = (datetime.now(TASHKENT_TZ) - timedelta(hours=hours)).strftime('%Y-%m-%d %H:%M:%S')
         cursor.execute("""
             SELECT COUNT(*) as total, SUM(is_up) as up_count,
                    AVG(response_time) as avg_response,
                    MIN(response_time) as min_response,
                    MAX(response_time) as max_response
             FROM monitoring_logs
-            WHERE url = ? AND checked_at >= datetime('now', ?)
-        """, (url, f'-{hours} hours'))
+            WHERE url = ? AND checked_at >= ?
+        """, (url, since_time))
         row = cursor.fetchone()
         conn.close()
         if row and row[0] > 0:
@@ -338,7 +349,7 @@ def analyze_assets(url):
             'Email manzillar': r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',
             'API kalitlar / Tokenlar': r'(?:key|api|token|secret|password|auth)\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?',
             'Ichki IP manzillar': r'\b(?:192\.168|10\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}\b',
-            'Server ma\'lumotlari': None,  # Header'dan olinadi
+            "Server ma'lumotlari": None,  # Header'dan olinadi
         }
 
         for label, pattern in patterns.items():
@@ -363,7 +374,7 @@ def analyze_assets(url):
         if server_header or x_powered:
             examples = [v for v in [server_header, x_powered] if v]
             results['sensitive_text'].append({
-                'type': 'Server ma\'lumotlari',
+                "type": "Server ma'lumotlari",
                 'found_count': len(examples),
                 'examples': examples,
                 'severity': 'low',
@@ -372,7 +383,7 @@ def analyze_assets(url):
             results['leakage_found'] = True
 
     except requests.ConnectionError:
-        results['error'] = 'Saytga ulanib bo\'lmadi'
+        results['error'] = "Saytga ulanib bo'lmadi"
     except requests.Timeout:
         results['error'] = 'Kutish vaqti tugadi (timeout)'
     except Exception as e:
@@ -387,7 +398,7 @@ def _get_leak_description(label):
         'API kalitlar / Tokenlar': 'JavaScript yoki HTML kodida yashirilmagan API kalitlar topildi',
         'Ichki IP manzillar': 'Ichki tarmoq IP manzillari HTML yoki skript kodida aniqlandi',
     }
-    return descriptions.get(label, 'Ma\'lumot sizib chiqishi aniqlandi')
+    return descriptions.get(label, "Ma'lumot sizib chiqishi aniqlandi")
 
 
 def download_single_file(file_url, save_dir):
@@ -400,11 +411,9 @@ def download_single_file(file_url, save_dir):
         resp = requests.get(file_url, timeout=15, stream=True, headers=headers)
         resp.raise_for_status()
 
-        # Fayl nomini URLdan olish
         parsed = urlparse(file_url)
         filename = os.path.basename(parsed.path)
         if not filename or '.' not in filename:
-            # Kengaytmani Content-Type dan aniqlash
             content_type = resp.headers.get('Content-Type', '')
             ext = mimetypes.guess_extension(content_type.split(';')[0].strip()) or '.bin'
             filename = hashlib.md5(file_url.encode()).hexdigest()[:10] + ext
@@ -412,7 +421,6 @@ def download_single_file(file_url, save_dir):
         filename = secure_filename(filename)
         save_path = os.path.join(save_dir, filename)
 
-        # Bir xil nomli fayl bo'lsa raqam qo'shish
         counter = 1
         base, ext = os.path.splitext(save_path)
         while os.path.exists(save_path):
@@ -441,7 +449,7 @@ def register():
         password = request.form.get('password')
         email = sanitize_input(request.form.get('email'))
         if not username or not password or not email:
-            flash('Barcha maydonlarni to\'ldiring', 'danger')
+            flash("Barcha maydonlarni to'ldiring", 'danger')
             return render_template('register.html')
         if not re.match(r"[^@]+@[^@]+\.[^@]+", email):
             flash('Yaroqli email manzilini kiriting', 'danger')
@@ -453,7 +461,7 @@ def register():
             cursor.execute("INSERT INTO users (username, password, email) VALUES (?, ?, ?)",
                            (username, hashed_password, email))
             conn.commit()
-            flash('Muvaffaqiyatli ro\'yxatdan o\'tdingiz!', 'success')
+            flash("Muvaffaqiyatli ro'yxatdan o'tdingiz!", 'success')
             return redirect(url_for('login'))
         except sqlite3.IntegrityError:
             flash('Bu foydalanuvchi nomi yoki email allaqachon mavjud', 'danger')
@@ -478,7 +486,7 @@ def login():
             flash('Tizimga muvaffaqiyatli kirdingiz!', 'success')
             return redirect(url_for('dashboard'))
         else:
-            flash('Noto\'g\'ri foydalanuvchi nomi yoki parol', 'danger')
+            flash("Noto'g'ri foydalanuvchi nomi yoki parol", 'danger')
     return render_template('login.html')
 
 
@@ -642,10 +650,11 @@ def scan():
 
         conn = sqlite3.connect('security_scanner.db')
         cursor = conn.cursor()
+        # ✅ TUZATILDI: scan_type qiymati ham qo'shildi (avval tushib qolgan edi)
         cursor.execute("""
             INSERT INTO scans (user_id, target, scan_type, results, severity)
             VALUES (?, ?, ?, ?, ?)
-        """, (session['user_id'], target, json.dumps(results), severity))
+        """, (session['user_id'], target, scan_type, json.dumps(results), severity))
         scan_id = cursor.lastrowid
         conn.commit()
         conn.close()
@@ -696,7 +705,7 @@ def delete_scan(scan_id):
     cursor.execute("DELETE FROM scans WHERE id = ? AND user_id = ?", (scan_id, session['user_id']))
     conn.commit()
     conn.close()
-    flash('Skanerlash natijasi o\'chirildi', 'success')
+    flash("Skanerlash natijasi o'chirildi", 'success')
     return redirect(url_for('history'))
 
 
@@ -725,14 +734,14 @@ def add_monitoring_target():
     cursor = conn.cursor()
     cursor.execute("SELECT id FROM monitoring_targets WHERE user_id = ? AND url = ?", (session['user_id'], url))
     if cursor.fetchone():
-        flash('Bu URL allaqachon monitoring ro\'yxatida', 'warning')
+        flash("Bu URL allaqachon monitoring ro'yxatida", 'warning')
     else:
         cursor.execute("""
             INSERT INTO monitoring_targets (user_id, url, check_interval)
             VALUES (?, ?, ?)
         """, (session['user_id'], url, interval))
         conn.commit()
-        flash(f'{url} monitoring ro\'yxatiga qo\'shildi', 'success')
+        flash(f"{url} monitoring ro'yxatiga qo'shildi", 'success')
     conn.close()
     return redirect(url_for('monitoring'))
 
@@ -745,7 +754,7 @@ def remove_monitoring_target(target_id):
     cursor.execute("DELETE FROM monitoring_targets WHERE id = ? AND user_id = ?", (target_id, session['user_id']))
     conn.commit()
     conn.close()
-    flash('Monitoring manzili o\'chirildi', 'info')
+    flash("Monitoring manzili o'chirildi", 'info')
     return redirect(url_for('monitoring'))
 
 
@@ -776,20 +785,22 @@ def monitoring_stats():
     try:
         conn = sqlite3.connect('security_scanner.db')
         cursor = conn.cursor()
+        # ✅ TUZATILDI: Toshkent vaqti asosida so'nggi 24 soat
+        since_time = (datetime.now(TASHKENT_TZ) - timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
         cursor.execute("""
             SELECT strftime('%H', checked_at) as hour,
                    COUNT(*) as total, SUM(is_up) as up_count,
                    AVG(response_time) as avg_resp
             FROM monitoring_logs
-            WHERE url = ? AND checked_at >= datetime('now', '-24 hours')
+            WHERE url = ? AND checked_at >= ?
             GROUP BY strftime('%H', checked_at)
             ORDER BY hour
-        """, (url,))
+        """, (url, since_time))
         hourly_data = [{'hour': r[0], 'uptime': round((r[2] / r[1]) * 100, 1), 'avg_resp': round(r[3] or 0, 1)}
                        for r in cursor.fetchall()]
         conn.close()
-    except:
-        pass
+    except Exception as e:
+        print(f"Hourly stats xatolik: {e}")
 
     return jsonify({
         'stats': stats,
@@ -803,7 +814,7 @@ def monitoring_stats():
     })
 
 
-# ─── ASSET RECON ROUTELAR (YANGI) ────────────────────────────
+# ─── ASSET RECON ROUTELAR ────────────────────────────────────
 
 @app.route('/asset_recon')
 @login_required
@@ -838,8 +849,6 @@ def download_single():
     """
     Bitta rasm yoki videoni serverga yuklab olib,
     foydalanuvchiga yuboradi (Content-Disposition: attachment).
-
-    Request body: { "url": "https://..." }
     """
     data = request.get_json()
     file_url = data.get('url', '').strip()
@@ -852,7 +861,6 @@ def download_single():
         resp = requests.get(file_url, timeout=15, stream=True, headers=headers)
         resp.raise_for_status()
 
-        # Fayl nomini URLdan olish
         parsed = urlparse(file_url)
         filename = os.path.basename(parsed.path)
         if not filename or '.' not in filename:
@@ -862,7 +870,6 @@ def download_single():
 
         filename = secure_filename(filename)
 
-        # Xotiraga yuklab olib, foydalanuvchiga yuborish
         file_data = io.BytesIO()
         for chunk in resp.iter_content(chunk_size=8192):
             file_data.write(chunk)
@@ -880,7 +887,7 @@ def download_single():
     except requests.HTTPError as e:
         return jsonify({'error': f'HTTP xatolik: {e.response.status_code}'}), 400
     except requests.ConnectionError:
-        return jsonify({'error': 'Faylga ulanib bo\'lmadi'}), 400
+        return jsonify({'error': "Faylga ulanib bo'lmadi"}), 400
     except requests.Timeout:
         return jsonify({'error': 'Kutish vaqti tugadi'}), 408
     except Exception as e:
@@ -893,15 +900,13 @@ def download_bulk():
     """
     Tanlangan rasm va videolarni ZIP arxivga joylab,
     foydalanuvchiga yuboradi.
-
-    Request body: { "urls": ["https://...", "https://..."], "folder": "images" }
     """
     data = request.get_json()
     urls = data.get('urls', [])
-    folder_name = data.get('folder', 'assets')  # 'images' yoki 'videos'
+    folder_name = data.get('folder', 'assets')
 
     if not urls:
-        return jsonify({'error': 'URL ro\'yxati bo\'sh'}), 400
+        return jsonify({'error': "URL ro'yxati bo'sh"}), 400
 
     if len(urls) > 50:
         return jsonify({'error': 'Bir vaqtda maksimal 50 ta fayl yuklanadi'}), 400
@@ -925,8 +930,6 @@ def download_bulk():
                     filename = hashlib.md5(file_url.encode()).hexdigest()[:10] + ext
 
                 filename = secure_filename(filename)
-
-                # ZIP ichida papka strukturasi: images/ yoki videos/
                 zip_path = os.path.join(folder_name, filename)
 
                 file_bytes = b''.join(resp.iter_content(chunk_size=8192))
@@ -938,8 +941,8 @@ def download_bulk():
 
     zip_buffer.seek(0)
 
-    # ZIP fayl nomi: assets_2024-01-15_143022.zip
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H%M%S')
+    # ✅ ZIP fayl nomi Toshkent vaqtida
+    timestamp = datetime.now(TASHKENT_TZ).strftime('%Y-%m-%d_%H%M%S')
     zip_filename = f"{folder_name}_{timestamp}.zip"
 
     return send_file(
