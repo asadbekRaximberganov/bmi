@@ -155,6 +155,7 @@
         {% if session.get('user_id') %}
         <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}">Boshqaruv paneli</a></li>
         <li class="nav-item"><a class="nav-link active" href="{{ url_for('monitoring') }}">Monitoring</a></li>
+        <li class="nav-item"><a class="nav-link" href="{{ url_for('asset_recon') }}">Resurslari aniqlash</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('scan') }}">Skanerlash</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('history') }}">Tarix</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('logout') }}">Chiqish</a></li>
