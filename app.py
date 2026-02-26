@@ -310,6 +310,25 @@ monitor_thread = threading.Thread(target=background_monitor, daemon=True)
 monitor_thread.start()
 
 
+# ─── RENDER KEEP-ALIVE ───────────────────────────────────────
+# Render bepul tarifi 30 soniya so'rov bo'lmasa serverni o'chiradi.
+RENDER_APP_URL = os.environ.get('RENDER_EXTERNAL_URL', '')
+
+def keep_alive_ping():
+    time.sleep(15)
+    while True:
+        try:
+            if RENDER_APP_URL:
+                requests.get(RENDER_APP_URL, timeout=8)
+                print(f"[keep-alive] ping OK → {RENDER_APP_URL}")
+        except Exception as e:
+            print(f"[keep-alive] xato: {e}")
+        time.sleep(30)
+
+keep_alive_thread = threading.Thread(target=keep_alive_ping, daemon=True)
+keep_alive_thread.start()
+
+
 # ═════════════════════════════════════════════════════════════
 #  KENGAYTIRILGAN MONITORING FUNKSIYALAR
 # ═════════════════════════════════════════════════════════════
@@ -870,90 +889,667 @@ def full_advanced_check(url):
 
 
 # ═════════════════════════════════════════════════════════════
-#  ASSET RECON FUNKSIYALAR
+#  ASSET RECON FUNKSIYALAR — TAKOMILLASHTIRILGAN VERSIYA
 # ═════════════════════════════════════════════════════════════
-def analyze_assets(url):
-    results = {
-        'images': [], 'videos': [],
-        'sensitive_text': [], 'leakage_found': False
-    }
-    try:
-        headers = {'User-Agent': 'Mozilla/5.0 (compatible; SecureScanner/1.0)'}
-        response = requests.get(url, timeout=10, headers=headers)
-        soup = BeautifulSoup(response.text, 'html.parser')
 
-        # Rasmlar
+# Video hosting domenlarini aniqlash uchun pattern
+VIDEO_DOMAINS = [
+    'youtube.com', 'youtu.be', 'vimeo.com', 'dailymotion.com',
+    'twitch.tv', 'tiktok.com', 'facebook.com', 'twitter.com', 'x.com',
+    'instagram.com', 'rutube.ru', 'ok.ru', 'mail.ru', 'coub.com',
+    'wistia.com', 'brightcove.com', 'jwplatform.com', 'kaltura.com',
+    'sproutvideo.com', 'vidyard.com', 'loom.com', 'streamable.com',
+    'rumble.com', 'odysee.com', 'bitchute.com',
+]
+
+VIDEO_EXTENSIONS = {'mp4', 'webm', 'ogg', 'avi', 'mov', 'mkv', 'flv', 'm4v', 'wmv', '3gp', 'm3u8', 'ts', 'ogv'}
+
+IMAGE_EXTENSIONS = {
+    'jpg', 'jpeg', 'png', 'gif', 'svg', 'webp', 'bmp', 'ico',
+    'tiff', 'tif', 'avif', 'heic', 'heif'
+}
+
+# YouTube video ID aniqlash pattern
+_YT_ID_RE = re.compile(
+    r'(?:youtube\.com/(?:embed/|v/|watch\?v=|shorts/)|youtu\.be/)([a-zA-Z0-9_-]{11})'
+)
+
+
+def _extract_url_ext(url_str):
+    """URL dan fayl kengaytmasini ajratib oladi."""
+    try:
+        path = urlparse(url_str).path
+        ext = os.path.splitext(path)[1].lower().strip('.')
+        return ext
+    except:
+        return ''
+
+
+def _normalize_url(url_str, base_url=''):
+    """
+    Protocol-relative URL larni to'g'rilaydi:
+    //youtube.com/embed/abc  →  https://youtube.com/embed/abc
+    Nisbiy URL larni ham to'liq URL ga aylantiradi.
+    """
+    if not url_str:
+        return ''
+    url_str = url_str.strip()
+    # Protocol-relative  //domain/path
+    if url_str.startswith('//'):
+        return 'https:' + url_str
+    # To'liq URL
+    if url_str.startswith(('http://', 'https://')):
+        return url_str
+    # Nisbiy URL
+    if base_url:
+        return urljoin(base_url, url_str)
+    return url_str
+
+
+def _yt_id_to_url(video_id):
+    """YouTube video ID dan embed URL yasaydi."""
+    return f'https://www.youtube.com/embed/{video_id}'
+
+
+def _is_video_url(url_str):
+    """URL video ekanligini tekshiradi (domen, kengaytma, pattern bo'yicha)."""
+    if not url_str:
+        return False
+    try:
+        # Protocol-relative ni to'g'irlab parse qilamiz
+        norm = _normalize_url(url_str)
+        parsed = urlparse(norm)
+        netloc = parsed.netloc.lower().lstrip('www.')
+        ext = _extract_url_ext(norm)
+
+        if ext in VIDEO_EXTENSIONS:
+            return True
+        for vd in VIDEO_DOMAINS:
+            if vd in netloc or vd in norm.lower():
+                return True
+        # Keng tarqalgan embed / player pattern
+        lower = norm.lower()
+        if any(p in lower for p in [
+            '/embed/', '/video/', 'player.', '/watch?v=', '/shorts/',
+            'jwplayer', 'flowplayer', 'kaltura', 'brightcove',
+            'wistia.net', 'fast.wistia', '/v/', 'vimeo.com/video'
+        ]):
+            return True
+    except:
+        pass
+    return False
+
+
+def _detect_video_platform(url_str):
+    """Video platformasini aniqlaydi."""
+    url_lower = url_str.lower()
+    if 'youtube.com' in url_lower or 'youtu.be' in url_lower:
+        return 'YouTube'
+    elif 'vimeo.com' in url_lower:
+        return 'Vimeo'
+    elif 'dailymotion.com' in url_lower:
+        return 'Dailymotion'
+    elif 'twitch.tv' in url_lower:
+        return 'Twitch'
+    elif 'tiktok.com' in url_lower:
+        return 'TikTok'
+    elif 'rutube.ru' in url_lower:
+        return 'RuTube'
+    elif 'ok.ru' in url_lower:
+        return 'OK.ru'
+    elif 'facebook.com' in url_lower:
+        return 'Facebook'
+    elif 'twitter.com' in url_lower or 'x.com' in url_lower:
+        return 'Twitter/X'
+    elif 'instagram.com' in url_lower:
+        return 'Instagram'
+    elif 'wistia' in url_lower:
+        return 'Wistia'
+    elif 'brightcove' in url_lower:
+        return 'Brightcove'
+    elif 'jwplatform' in url_lower or 'jwplayer' in url_lower:
+        return 'JWPlayer'
+    elif 'rumble.com' in url_lower:
+        return 'Rumble'
+    elif 'loom.com' in url_lower:
+        return 'Loom'
+    else:
+        ext = _extract_url_ext(url_str)
+        return ext.upper() if ext in VIDEO_EXTENSIONS else 'Embed'
+
+
+def analyze_assets(url):
+    """
+    Saytdan barcha resurslarni aniqlaydi:
+    - Rasmlar (img, picture, srcset, CSS background, og:image, favicon)
+    - Videolar (video, source, iframe embeds — YouTube/Vimeo va boshqalar)
+    - JavaScript fayllari
+    - CSS fayllari
+    - Fontlar (woff, woff2, ttf, eot)
+    - Meta/OG ma'lumotlari
+    - Formalar (action URL, method)
+    - Tashqi havolalar
+    - Ma'lumot sizib chiqishi (email, API key, ichki IP)
+    """
+    results = {
+        'url': url,
+        'images': [],
+        'videos': [],
+        'scripts': [],
+        'stylesheets': [],
+        'fonts': [],
+        'meta_info': {},
+        'forms': [],
+        'external_links': [],
+        'sensitive_text': [],
+        'leakage_found': False,
+        'summary': {},
+        'checked_at': now_tashkent()
+    }
+
+    try:
+        headers_req = {'User-Agent': 'Mozilla/5.0 (compatible; SecureScanner/1.0)'}
+        response = requests.get(url, timeout=10, headers=headers_req)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        base_domain = urlparse(url).netloc
+
+        # ── 1. RASMLAR ────────────────────────────────────────
+        seen_images = set()
+
+        def add_image(img_url, source_type='img', alt='', width=None, height=None):
+            if not img_url or img_url.startswith('data:'):
+                return
+            full_url = urljoin(url, img_url)
+            if full_url in seen_images:
+                return
+            seen_images.add(full_url)
+            ext = _extract_url_ext(full_url) or 'unknown'
+            results['images'].append({
+                'url': full_url,
+                'type': ext,
+                'source': source_type,
+                'alt': alt or '',
+                'width': width,
+                'height': height
+            })
+
+        # <img> teglari
         for img in soup.find_all('img'):
-            for attr in ['src', 'data-src', 'data-lazy-src']:
-                img_url = img.get(attr)
-                if img_url:
-                    full_url = urljoin(url, img_url)
-                    ext = os.path.splitext(urlparse(full_url).path)[1].lower().strip('.')
-                    results['images'].append({'url': full_url, 'type': ext or 'img', 'alt': img.get('alt', '')})
+            for attr in ['src', 'data-src', 'data-lazy-src', 'data-original',
+                         'data-lazy', 'data-url', 'data-image']:
+                val = img.get(attr)
+                if val:
+                    add_image(val, 'img', img.get('alt', ''),
+                              img.get('width'), img.get('height'))
+
             srcset = img.get('srcset', '')
             if srcset:
                 for part in srcset.split(','):
-                    src_url = part.strip().split(' ')[0]
-                    if src_url:
-                        full_url = urljoin(url, src_url)
-                        ext = os.path.splitext(urlparse(full_url).path)[1].lower().strip('.')
-                        results['images'].append({'url': full_url, 'type': ext or 'img', 'alt': ''})
+                    src_part = part.strip().split(' ')[0]
+                    if src_part:
+                        add_image(src_part, 'img-srcset', img.get('alt', ''))
 
+        # <picture> / <source> rasm manbalari
+        for source in soup.find_all('source'):
+            # Faqat rasm source — video emas
+            src_type = source.get('type', '')
+            if src_type.startswith('video/') or src_type == 'application/x-mpegURL':
+                continue
+            src = source.get('src') or source.get('srcset', '').split(',')[0].strip().split(' ')[0]
+            if src:
+                add_image(src, 'picture-source')
+
+        # CSS background-image inline
         for tag in soup.find_all(style=True):
             css_urls = re.findall(r'url\(["\']?([^"\')\s]+)["\']?\)', tag.get('style', ''))
             for cu in css_urls:
-                full_url = urljoin(url, cu)
-                ext = os.path.splitext(urlparse(full_url).path)[1].lower().strip('.')
-                results['images'].append({'url': full_url, 'type': ext or 'img', 'alt': 'css-bg'})
+                if not any(cu.lower().endswith(v) for v in VIDEO_EXTENSIONS):
+                    add_image(cu, 'css-inline-bg')
 
-        seen = set()
-        results['images'] = [img for img in results['images']
-                              if img['url'] not in seen and not seen.add(img['url'])]
+        # Meta og:image, twitter:image
+        for meta in soup.find_all('meta'):
+            prop = meta.get('property', '') or meta.get('name', '')
+            content_val = meta.get('content', '')
+            if prop in ('og:image', 'twitter:image', 'og:image:secure_url') and content_val:
+                add_image(content_val, 'meta-og')
 
-        # Videolar
-        for video in soup.find_all(['video', 'source']):
-            video_url = video.get('src')
-            if video_url:
-                full_url = urljoin(url, video_url)
-                ext = os.path.splitext(urlparse(full_url).path)[1].lower().strip('.')
-                results['videos'].append({'url': full_url, 'type': ext or 'video'})
+        # Favicon
+        for link in soup.find_all('link', rel=True):
+            rel_val = ' '.join(link.get('rel', [])).lower()
+            if 'icon' in rel_val or 'apple-touch-icon' in rel_val:
+                href = link.get('href', '')
+                if href:
+                    add_image(href, 'favicon')
 
+        # ── 2. VIDEOLAR ───────────────────────────────────────
+        seen_videos = set()
+
+        def add_video(v_url, source_type='video', platform=None, title=''):
+            if not v_url or v_url.startswith('data:'):
+                return
+            # Protocol-relative va nisbiy URL larni to'g'irlaymiz
+            full_url = _normalize_url(v_url, url)
+            if not full_url or full_url in seen_videos:
+                return
+            seen_videos.add(full_url)
+            ext = _extract_url_ext(full_url)
+            results['videos'].append({
+                'url': full_url,
+                'type': ext or 'embed',
+                'source': source_type,
+                'platform': platform or _detect_video_platform(full_url),
+                'title': title or ''
+            })
+
+        # ── <video> teglari ──────────────────────────────────
+        for video_tag in soup.find_all('video'):
+            # src attributi
+            for attr in ['src', 'data-src']:
+                src = video_tag.get(attr, '')
+                if src:
+                    add_video(src, 'video-tag')
+            # Poster rasm
+            poster = video_tag.get('poster', '')
+            if poster:
+                add_image(poster, 'video-poster')
+            # <source> bolalari — type bo'lsa ham bo'lmasa ham
+            for source_child in video_tag.find_all('source'):
+                s_src = source_child.get('src', '') or source_child.get('data-src', '')
+                if s_src:
+                    add_video(s_src, 'video-source')
+
+        # ── Mustaqil <source> teglari ────────────────────────
+        # type='video/...' bo'lganda ham, bo'lmasa ham kengaytma bo'yicha
+        for source_tag in soup.find_all('source'):
+            s_type = source_tag.get('type', '')
+            s_src  = source_tag.get('src', '') or source_tag.get('data-src', '')
+            if not s_src:
+                continue
+            is_video_type = s_type.startswith('video/') or s_type == 'application/x-mpegURL'
+            is_video_ext  = _extract_url_ext(s_src) in VIDEO_EXTENSIONS
+            if is_video_type or is_video_ext:
+                add_video(s_src, 'source-tag')
+
+        # ── <iframe> embed videolar ──────────────────────────
         for iframe in soup.find_all('iframe'):
-            src = iframe.get('src', '')
-            if 'youtube' in src or 'vimeo' in src or 'youtu.be' in src:
-                results['videos'].append({'url': src, 'type': 'embed'})
+            # src yoki data-src (lazy-load)
+            src = (iframe.get('src') or iframe.get('data-src') or
+                   iframe.get('data-lazy-src') or '').strip()
+            if not src:
+                continue
+            # Protocol-relative ni to'g'irlab tekshiramiz
+            norm_src = _normalize_url(src, url)
+            if _is_video_url(norm_src):
+                title = (iframe.get('title') or iframe.get('aria-label') or
+                         iframe.get('name') or '')
+                add_video(src, 'iframe-embed', title=title)
 
-        # Ma'lumot sizib chiqishi
+        # ── <embed> va <object> teglari ──────────────────────
+        for embed_tag in soup.find_all(['embed', 'object']):
+            src = embed_tag.get('src', '') or embed_tag.get('data', '')
+            if src:
+                norm_src = _normalize_url(src, url)
+                if _is_video_url(norm_src):
+                    add_video(src, 'embed-tag')
+
+        # ── data-* atributlar (video player'lar) ─────────────
+        DATA_VIDEO_ATTRS = [
+            'data-video', 'data-video-src', 'data-video-url', 'data-video-file',
+            'data-mp4', 'data-webm', 'data-ogg', 'data-src',
+            'data-lazy-src', 'data-original',
+        ]
+        for tag in soup.find_all(True):
+            for attr in DATA_VIDEO_ATTRS:
+                val = tag.get(attr, '').strip()
+                if not val or val.startswith('data:') or val == '#':
+                    continue
+                norm_val = _normalize_url(val, url)
+                if _is_video_url(norm_val):
+                    add_video(val, 'data-attr')
+
+        # ── data-video-id (YouTube embed ID) ─────────────────
+        for tag in soup.find_all(True):
+            for attr in ['data-video-id', 'data-videoid', 'data-youtube-id',
+                         'data-yt-id', 'data-ytid']:
+                yt_id = tag.get(attr, '').strip()
+                # YouTube ID: 11 belgi, harf/raqam/_/-
+                if yt_id and re.match(r'^[a-zA-Z0-9_-]{11}$', yt_id):
+                    add_video(_yt_id_to_url(yt_id), 'data-yt-id',
+                              platform='YouTube',
+                              title=tag.get('data-title', tag.get('title', '')))
+
+        # ── amp-youtube / amp-video / amp-vimeo ──────────────
+        for amp_tag in soup.find_all(re.compile(r'^amp-(youtube|video|vimeo|dailymotion)')):
+            tag_name = amp_tag.name
+            if 'youtube' in tag_name:
+                yt_id = amp_tag.get('data-videoid', '') or amp_tag.get('data-video-id', '')
+                if yt_id:
+                    add_video(_yt_id_to_url(yt_id), 'amp-youtube', platform='YouTube')
+            elif 'vimeo' in tag_name:
+                vid = amp_tag.get('data-videoid', '')
+                if vid:
+                    add_video(f'https://player.vimeo.com/video/{vid}', 'amp-vimeo', platform='Vimeo')
+            elif 'video' in tag_name:
+                src = amp_tag.get('src', '')
+                if src:
+                    add_video(src, 'amp-video')
+            elif 'dailymotion' in tag_name:
+                vid = amp_tag.get('data-videoid', '')
+                if vid:
+                    add_video(f'https://www.dailymotion.com/embed/video/{vid}', 'amp-dailymotion', platform='Dailymotion')
+
+        # ── JavaScript ichidagi video URL larni qidirish ─────
+        # jwplayer({file:'...'}), videojs({src:'...'}), setup({sources:[{src:'...'}]})
+        js_video_patterns = [
+            # file: 'url.mp4'  yoki  file: "url.mp4"
+            r'''["\']file["\']\s*:\s*["\'](https?://[^"']+\.(?:mp4|webm|m3u8|ogv|ogg))["\']''',
+            # src: 'url.mp4'
+            r'''["\']src["\']\s*:\s*["\'](https?://[^"']+\.(?:mp4|webm|m3u8|ogv))["\']''',
+            # videoUrl: '...'
+            r'''videoUrl\s*[:=]\s*["\'](https?://[^"']+)["\']''',
+            # sources: [{src: '...'}]
+            r'''sources\s*:\s*\[.*?src\s*:\s*["\'](https?://[^"']+)["\']''',
+            # YouTube embed URL to'g'ridan-to'g'ri JS ichida
+            r'''(https?://(?:www\.)?youtube\.com/embed/[a-zA-Z0-9_-]{11}(?:[?&][^"'\s]*)?)''',
+            # Vimeo player URL
+            r'''(https?://player\.vimeo\.com/video/\d+(?:[?&][^"'\s]*)?)''',
+        ]
+        for script_tag in soup.find_all('script', src=False):
+            js_text = script_tag.get_text() or ''
+            if not js_text.strip():
+                continue
+            for pattern in js_video_patterns:
+                for match in re.findall(pattern, js_text, re.IGNORECASE | re.DOTALL):
+                    v_url = match.strip().rstrip('\\')
+                    if v_url and _is_video_url(_normalize_url(v_url, url)):
+                        add_video(v_url, 'js-inline')
+
+        # ── 3. JAVASCRIPT FAYLLARI ────────────────────────────
+        seen_scripts = set()
+        for script in soup.find_all('script'):
+            src = script.get('src', '')
+            if src:
+                full_url_s = urljoin(url, src)
+                if full_url_s not in seen_scripts:
+                    seen_scripts.add(full_url_s)
+                    is_external = urlparse(full_url_s).netloc != base_domain
+                    results['scripts'].append({
+                        'url': full_url_s,
+                        'type': script.get('type', 'text/javascript'),
+                        'async': script.has_attr('async'),
+                        'defer': script.has_attr('defer'),
+                        'external': is_external,
+                        'integrity': script.get('integrity', '')
+                    })
+
+        # ── 4. CSS FAYLLARI ───────────────────────────────────
+        seen_css = set()
+        for link_tag in soup.find_all('link', rel=True):
+            rel = ' '.join(link_tag.get('rel', [])).lower()
+            if 'stylesheet' in rel:
+                href = link_tag.get('href', '')
+                if href:
+                    full_url_c = urljoin(url, href)
+                    if full_url_c not in seen_css:
+                        seen_css.add(full_url_c)
+                        is_external = urlparse(full_url_c).netloc != base_domain
+                        results['stylesheets'].append({
+                            'url': full_url_c,
+                            'media': link_tag.get('media', 'all'),
+                            'external': is_external,
+                            'integrity': link_tag.get('integrity', '')
+                        })
+
+        # ── 5. FONTLAR ────────────────────────────────────────
+        font_extensions = {'woff', 'woff2', 'ttf', 'otf', 'eot'}
+        seen_fonts = set()
+
+        # HTML ichidagi <link> fontlar
+        for link_tag in soup.find_all('link', href=True):
+            href = link_tag.get('href', '')
+            ext = _extract_url_ext(href)
+            if ext in font_extensions:
+                full_url_f = urljoin(url, href)
+                if full_url_f not in seen_fonts:
+                    seen_fonts.add(full_url_f)
+                    results['fonts'].append({
+                        'url': full_url_f,
+                        'format': ext,
+                        'source': 'link-tag'
+                    })
+
+        # Google Fonts, Adobe Fonts kabi CDN fontlar
+        for link_tag in soup.find_all('link', href=True):
+            href = link_tag.get('href', '')
+            if any(fd in href for fd in ['fonts.googleapis.com', 'fonts.gstatic.com',
+                                          'use.typekit.net', 'use.fontawesome.com',
+                                          'cdnjs.cloudflare.com/ajax/libs/font-awesome']):
+                if href not in seen_fonts:
+                    seen_fonts.add(href)
+                    results['fonts'].append({
+                        'url': href,
+                        'format': 'cdn',
+                        'source': 'cdn-font'
+                    })
+
+        # ── 6. META VA OG MA'LUMOTLARI ────────────────────────
+        meta_info = {}
+
+        # Asosiy meta teglari
+        title_tag = soup.find('title')
+        if title_tag:
+            meta_info['title'] = title_tag.get_text(strip=True)
+
+        desc_tag = soup.find('meta', attrs={'name': 'description'})
+        if desc_tag:
+            meta_info['description'] = desc_tag.get('content', '')
+
+        keywords_tag = soup.find('meta', attrs={'name': 'keywords'})
+        if keywords_tag:
+            meta_info['keywords'] = keywords_tag.get('content', '')
+
+        robots_tag = soup.find('meta', attrs={'name': 'robots'})
+        if robots_tag:
+            meta_info['robots'] = robots_tag.get('content', '')
+
+        # Charset
+        charset_tag = soup.find('meta', charset=True)
+        if charset_tag:
+            meta_info['charset'] = charset_tag.get('charset', '')
+
+        # Viewport
+        viewport_tag = soup.find('meta', attrs={'name': 'viewport'})
+        if viewport_tag:
+            meta_info['viewport'] = viewport_tag.get('content', '')
+
+        # Open Graph
+        og_data = {}
+        for meta_tag in soup.find_all('meta', property=True):
+            prop = meta_tag.get('property', '')
+            if prop.startswith('og:'):
+                og_data[prop] = meta_tag.get('content', '')
+        if og_data:
+            meta_info['open_graph'] = og_data
+
+        # Twitter Card
+        twitter_data = {}
+        for meta_tag in soup.find_all('meta', attrs={'name': True}):
+            name = meta_tag.get('name', '')
+            if name.startswith('twitter:'):
+                twitter_data[name] = meta_tag.get('content', '')
+        if twitter_data:
+            meta_info['twitter_card'] = twitter_data
+
+        # Canonical URL
+        canonical = soup.find('link', rel='canonical')
+        if canonical:
+            meta_info['canonical'] = canonical.get('href', '')
+
+        # Generator (CMS aniqlash)
+        generator_tag = soup.find('meta', attrs={'name': 'generator'})
+        if generator_tag:
+            meta_info['generator'] = generator_tag.get('content', '')
+
+        # HTTP response headerlaridan ma'lumot
+        meta_info['content_type'] = response.headers.get('Content-Type', '')
+        meta_info['server'] = response.headers.get('Server', '')
+        meta_info['x_powered_by'] = response.headers.get('X-Powered-By', '')
+        meta_info['status_code'] = response.status_code
+        meta_info['response_time_ms'] = round(response.elapsed.total_seconds() * 1000, 2)
+        meta_info['content_length'] = len(response.content)
+
+        results['meta_info'] = meta_info
+
+        # ── 7. FORMALAR ───────────────────────────────────────
+        for form in soup.find_all('form'):
+            action = form.get('action', '')
+            method = form.get('method', 'GET').upper()
+            full_action = urljoin(url, action) if action else url
+            is_external = urlparse(full_action).netloc not in ('', base_domain)
+
+            form_fields = []
+            for inp in form.find_all(['input', 'select', 'textarea']):
+                field_type = inp.get('type', inp.name or 'text').lower()
+                field_name = inp.get('name', '') or inp.get('id', '')
+                form_fields.append({
+                    'name': field_name,
+                    'type': field_type,
+                    'required': inp.has_attr('required'),
+                    'sensitive': field_type in ['password', 'email', 'tel', 'credit-card']
+                })
+
+            # Xavf darajasi
+            has_password = any(f['type'] == 'password' for f in form_fields)
+            form_severity = 'high' if (is_external and has_password) else (
+                'medium' if is_external else 'low'
+            )
+
+            results['forms'].append({
+                'action': full_action,
+                'method': method,
+                'fields': form_fields,
+                'field_count': len(form_fields),
+                'has_password_field': has_password,
+                'is_external_action': is_external,
+                'severity': form_severity,
+                'enctype': form.get('enctype', 'application/x-www-form-urlencoded')
+            })
+
+        # ── 8. TASHQI HAVOLALAR ───────────────────────────────
+        seen_ext_links = set()
+        for a_tag in soup.find_all('a', href=True):
+            href = a_tag.get('href', '')
+            if not href or href.startswith(('#', 'mailto:', 'tel:', 'javascript:')):
+                continue
+            full_href = urljoin(url, href)
+            parsed_href = urlparse(full_href)
+            if parsed_href.netloc and parsed_href.netloc != base_domain:
+                if full_href not in seen_ext_links:
+                    seen_ext_links.add(full_href)
+                    results['external_links'].append({
+                        'url': full_href,
+                        'text': a_tag.get_text(strip=True)[:80],
+                        'domain': parsed_href.netloc,
+                        'rel': a_tag.get('rel', []),
+                        'nofollow': 'nofollow' in (a_tag.get('rel') or [])
+                    })
+
+        # ── 9. MA'LUMOT SIZIB CHIQISHI ────────────────────────
         page_content = response.text
-        patterns = {
-            'Email manzillar': (r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', 'low'),
-            'API kalitlar / Tokenlar': (r'(?:key|api|token|secret|password|auth)\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?', 'critical'),
-            'Ichki IP manzillar': (r'\b(?:192\.168|10\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}\b', 'medium'),
+
+        leak_patterns = {
+            'Email manzillar': (
+                r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}',
+                'low',
+                'Sahifa kodida ochiq holda email manzillar aniqlandi'
+            ),
+            'API kalitlar / Tokenlar': (
+                r'(?:key|api|token|secret|password|auth|bearer)\s*[:=]\s*["\']?([a-zA-Z0-9_\-]{20,})["\']?',
+                'critical',
+                'JavaScript yoki HTML kodida yashirilmagan API kalitlar topildi'
+            ),
+            'Ichki IP manzillar': (
+                r'\b(?:192\.168|10\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}\b',
+                'medium',
+                'Ichki tarmoq IP manzillari HTML yoki skript kodida aniqlandi'
+            ),
+            'JWT Tokenlar': (
+                r'eyJ[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}\.[a-zA-Z0-9_-]{10,}',
+                'critical',
+                'JWT token sahifa kodida aniqlandi — autentifikatsiya xavfi'
+            ),
+            'AWS Kalitlar': (
+                r'AKIA[0-9A-Z]{16}',
+                'critical',
+                'Amazon AWS kirish kaliti HTML/JS kodida topildi'
+            ),
+            'Telefon raqamlar': (
+                r'(?:\+998|8)[\s\-]?(?:\d{2})[\s\-]?\d{3}[\s\-]?\d{2}[\s\-]?\d{2}',
+                'low',
+                "O'zbek telefon raqamlari sahifada aniqlandi"
+            ),
+            'Kredit karta raqamlari': (
+                r'\b(?:4[0-9]{12}(?:[0-9]{3})?|5[1-5][0-9]{14}|3[47][0-9]{13})\b',
+                'critical',
+                'Potentsial kredit karta raqamlari aniqlandi'
+            ),
+            'SQL so\'rovlar': (
+                r'(?:SELECT\s+.+\s+FROM|INSERT\s+INTO|UPDATE\s+\w+\s+SET|DELETE\s+FROM)\s+\w+',
+                'high',
+                'Ochiq SQL so\'rovlari HTML/JS kodida aniqlandi'
+            ),
         }
-        for label, (pattern, severity) in patterns.items():
+
+        for label, (pattern, severity, description) in leak_patterns.items():
             found = re.findall(pattern, page_content, re.IGNORECASE)
+            # Filtrlash: keng tarqalgan yolg'on musbatlarni olib tashlash
+            if label == 'Email manzillar':
+                found = [e for e in found if not any(
+                    skip in e.lower() for skip in [
+                        'example.com', 'yourdomain', 'test@', 'noreply@',
+                        'user@', 'email@', 'info@example', 'admin@example'
+                    ]
+                )]
             if found:
                 results['sensitive_text'].append({
-                    'type': label, 'found_count': len(found),
-                    'examples': list(set(found))[:3], 'severity': severity,
-                    'description': {
-                        'Email manzillar': 'Sahifa kodida ochiq holda email manzillar aniqlandi',
-                        'API kalitlar / Tokenlar': 'JavaScript yoki HTML kodida yashirilmagan API kalitlar topildi',
-                        'Ichki IP manzillar': 'Ichki tarmoq IP manzillari HTML yoki skript kodida aniqlandi',
-                    }.get(label, "Ma'lumot sizib chiqishi aniqlandi")
+                    'type': label,
+                    'found_count': len(found),
+                    'examples': list(set(str(f) for f in found))[:3],
+                    'severity': severity,
+                    'description': description
                 })
                 results['leakage_found'] = True
 
+        # Server headerlari orqali ma'lumot oshkori
         server_header = response.headers.get('Server', '')
         x_powered     = response.headers.get('X-Powered-By', '')
-        if server_header or x_powered:
-            examples = [v for v in [server_header, x_powered] if v]
+        x_generator   = response.headers.get('X-Generator', '')
+        if server_header or x_powered or x_generator:
+            examples = [v for v in [server_header, x_powered, x_generator] if v]
             results['sensitive_text'].append({
-                "type": "Server ma'lumotlari", 'found_count': len(examples),
-                'examples': examples, 'severity': 'low',
+                'type': "Server ma'lumotlari",
+                'found_count': len(examples),
+                'examples': examples,
+                'severity': 'low',
                 'description': 'Server versiyasi response headerda oshkor qilingan',
             })
             results['leakage_found'] = True
+
+        # ── 10. UMUMIY STATISTIKA ─────────────────────────────
+        results['summary'] = {
+            'total_images': len(results['images']),
+            'total_videos': len(results['videos']),
+            'total_scripts': len(results['scripts']),
+            'total_stylesheets': len(results['stylesheets']),
+            'total_fonts': len(results['fonts']),
+            'total_forms': len(results['forms']),
+            'total_external_links': len(results['external_links']),
+            'total_leaks': len(results['sensitive_text']),
+            'external_scripts': sum(1 for s in results['scripts'] if s.get('external')),
+            'external_css': sum(1 for c in results['stylesheets'] if c.get('external')),
+            'high_risk_forms': sum(1 for f in results['forms'] if f.get('severity') == 'high'),
+            'critical_leaks': sum(1 for l in results['sensitive_text'] if l.get('severity') == 'critical'),
+        }
 
     except requests.ConnectionError:
         results['error'] = "Saytga ulanib bo'lmadi"
@@ -961,6 +1557,7 @@ def analyze_assets(url):
         results['error'] = 'Kutish vaqti tugadi (timeout)'
     except Exception as e:
         results['error'] = str(e)
+
     return results
 
 
@@ -1369,10 +1966,6 @@ def monitoring_stats():
 @app.route('/monitoring/advanced', methods=['POST'])
 @login_required
 def advanced_monitoring():
-    """
-    To'liq kengaytirilgan tekshiruv:
-    DNS, WHOIS, Redirect, Headers, Ping, Ports, Content, GeoIP.
-    """
     data = request.get_json()
     url  = data.get('url', '').strip()
     if not url:
@@ -1386,7 +1979,6 @@ def advanced_monitoring():
 @app.route('/monitoring/dns', methods=['POST'])
 @login_required
 def check_dns():
-    """DNS yozuvlarini tekshiradi va o'zgarishlarni aniqlaydi."""
     data   = request.get_json()
     domain = data.get('domain', '').strip()
     if not domain:
@@ -1398,7 +1990,6 @@ def check_dns():
 @app.route('/monitoring/whois', methods=['POST'])
 @login_required
 def check_whois():
-    """Domen WHOIS ma'lumotlarini qaytaradi."""
     data   = request.get_json()
     domain = data.get('domain', '').strip()
     if not domain:
@@ -1410,7 +2001,6 @@ def check_whois():
 @app.route('/monitoring/redirects', methods=['POST'])
 @login_required
 def check_redirects():
-    """HTTP redirect zanjirini kuzatadi."""
     data = request.get_json()
     url  = data.get('url', '').strip()
     if not url:
@@ -1422,7 +2012,6 @@ def check_redirects():
 @app.route('/monitoring/headers/deep', methods=['POST'])
 @login_required
 def check_headers_deep():
-    """Chuqur header tahlili — A/B/C/F baho."""
     data = request.get_json()
     url  = data.get('url', '').strip()
     if not url:
@@ -1434,7 +2023,6 @@ def check_headers_deep():
 @app.route('/monitoring/ping', methods=['POST'])
 @login_required
 def check_ping():
-    """Ping tekshiruvi — RTT va paket yo'qotish."""
     data = request.get_json()
     host = data.get('host', '').strip()
     if not host:
@@ -1446,7 +2034,6 @@ def check_ping():
 @app.route('/monitoring/ports/history', methods=['POST'])
 @login_required
 def check_ports_history():
-    """Port o'zgarishlarini tekshiradi va tarixini qaytaradi."""
     data = request.get_json()
     host = data.get('host', '').strip()
     if not host:
@@ -1458,7 +2045,6 @@ def check_ports_history():
 @app.route('/monitoring/content', methods=['POST'])
 @login_required
 def check_content():
-    """Sahifa mazmunini hash qilib o'zgarishni aniqlaydi."""
     data = request.get_json()
     url  = data.get('url', '').strip()
     if not url:
@@ -1470,7 +2056,6 @@ def check_content():
 @app.route('/monitoring/geoip', methods=['POST'])
 @login_required
 def check_geoip():
-    """Server joylashuvi va ISP ma'lumotlarini qaytaradi."""
     data = request.get_json()
     host = data.get('host', '').strip()
     if not host:
