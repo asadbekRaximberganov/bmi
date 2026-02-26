@@ -3,153 +3,234 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Monitoring Tizimi</title>
+  <title>Monitoring Tizimi — SecureScan</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <style>
-    body { background: #f4f6fb; }
-
-    /* STAT CARDS */
-    .stat-card {
-      border: none; border-radius: 14px; padding: 22px 20px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.07);
-      transition: transform 0.2s, box-shadow 0.2s;
+    :root {
+      --green:  #28a745; --red: #dc3545; --blue: #0d6efd;
+      --yellow: #ffc107; --gray: #6c757d; --purple: #6f42c1;
     }
-    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
-    .stat-icon {
-      width: 52px; height: 52px; border-radius: 12px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 22px; margin-bottom: 12px;
-    }
-    .stat-val  { font-size: 28px; font-weight: 700; line-height: 1; margin-bottom: 4px; }
-    .stat-lbl  { font-size: 12px; color: #6c757d; text-transform: uppercase; letter-spacing: 0.8px; }
-    .stat-meta { font-size: 12px; color: #adb5bd; margin-top: 4px; }
+    body { background:#f4f6fb; font-family: system-ui, sans-serif; }
 
-    /* STATUS HERO */
-    .status-hero {
-      border: none; border-radius: 16px;
-      box-shadow: 0 2px 16px rgba(0,0,0,0.08);
-      padding: 28px; margin-bottom: 24px;
-      display: flex; align-items: center;
-      justify-content: space-between; gap: 20px;
-      transition: border 0.3s;
-    }
-    .status-hero.up   { background: linear-gradient(135deg, #f0fff4 0%, #ffffff 100%); border-left: 5px solid #28a745; }
-    .status-hero.down { background: linear-gradient(135deg, #fff5f5 0%, #ffffff 100%); border-left: 5px solid #dc3545; }
-    .status-hero.loading { background: #fff; border-left: 5px solid #6c757d; }
+    /* ── NAVBAR ── */
+    .navbar-brand i { margin-right:6px; }
 
-    .hero-icon {
-      width: 68px; height: 68px; border-radius: 18px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 28px; flex-shrink: 0;
-    }
-    .hero-icon.up      { background: #d4edda; color: #155724; }
-    .hero-icon.down    { background: #f8d7da; color: #721c24; }
-    .hero-icon.loading { background: #e9ecef; color: #6c757d; }
-
-    .hero-domain { font-size: 20px; font-weight: 700; color: #212529; }
-    .hero-meta   { font-size: 13px; color: #6c757d; margin-top: 4px; }
-
-    .hero-metrics { display: flex; gap: 32px; flex-shrink: 0; }
-    .hm { text-align: center; }
-    .hm-val { font-size: 22px; font-weight: 700; line-height: 1; }
-    .hm-lbl { font-size: 11px; color: #adb5bd; text-transform: uppercase; letter-spacing: 0.8px; margin-top: 4px; }
-
-    /* URL INPUT BAR */
+    /* ── URL BAR ── */
     .url-bar {
-      background: #fff; border-radius: 14px; padding: 20px 22px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.07); margin-bottom: 24px;
-      display: flex; gap: 10px; align-items: center;
+      background:#fff; border-radius:14px; padding:16px 22px;
+      box-shadow:0 2px 12px rgba(0,0,0,.07); margin-bottom:22px;
+      display:flex; gap:10px; align-items:center; flex-wrap:wrap;
     }
-    .url-bar label { font-size: 13px; color: #6c757d; font-weight: 600; flex-shrink: 0; white-space: nowrap; }
     .url-bar input {
-      flex: 1; border: 1px solid #dee2e6; border-radius: 10px;
-      padding: 10px 14px; font-size: 14px; outline: none; transition: border-color 0.2s;
-      background: #f8f9fa;
+      flex:1; min-width:200px; border:1.5px solid #dee2e6; border-radius:10px;
+      padding:9px 14px; font-size:14px; outline:none; background:#f8f9fa;
+      transition:border-color .2s;
     }
-    .url-bar input:focus { border-color: #0d6efd; box-shadow: 0 0 0 3px rgba(13,110,253,0.1); background: #fff; }
-    .url-bar .active-tag {
-      font-size: 12px; color: #0d6efd; background: #e7f1ff;
-      border: 1px solid #b6d4fe; padding: 4px 10px; border-radius: 6px;
-      flex-shrink: 0; max-width: 220px; overflow: hidden;
-      text-overflow: ellipsis; white-space: nowrap;
+    .url-bar input:focus { border-color:var(--blue); background:#fff; box-shadow:0 0 0 3px rgba(13,110,253,.1); }
+    .active-tag {
+      font-size:12px; color:var(--blue); background:#e7f1ff;
+      border:1px solid #b6d4fe; padding:4px 10px; border-radius:6px;
+      max-width:240px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     }
 
-    /* SECTION CARD */
+    /* ── STATUS HERO ── */
+    .status-hero {
+      background:#fff; border-radius:16px; box-shadow:0 2px 16px rgba(0,0,0,.08);
+      padding:24px 28px; margin-bottom:22px;
+      display:flex; align-items:center; justify-content:space-between; gap:20px;
+      border-left:5px solid #dee2e6; transition:border-color .4s, background .4s;
+    }
+    .status-hero.up   { background:linear-gradient(135deg,#f0fff4,#fff); border-left-color:var(--green); }
+    .status-hero.down { background:linear-gradient(135deg,#fff5f5,#fff); border-left-color:var(--red); }
+    .hero-icon {
+      width:64px; height:64px; border-radius:16px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:26px; flex-shrink:0; transition:all .3s;
+    }
+    .hero-icon.up   { background:#d4edda; color:#155724; }
+    .hero-icon.down { background:#f8d7da; color:#721c24; }
+    .hero-icon.load { background:#e9ecef; color:var(--gray); }
+    .hm { text-align:center; }
+    .hm-val { font-size:21px; font-weight:700; line-height:1; }
+    .hm-lbl { font-size:10px; color:#adb5bd; text-transform:uppercase; letter-spacing:.8px; margin-top:3px; }
+
+    /* ── STAT CARDS ── */
+    .stat-card {
+      background:#fff; border:none; border-radius:14px; padding:20px;
+      box-shadow:0 2px 12px rgba(0,0,0,.07); transition:transform .2s;
+    }
+    .stat-card:hover { transform:translateY(-3px); }
+    .stat-icon {
+      width:48px; height:48px; border-radius:12px;
+      display:flex; align-items:center; justify-content:center;
+      font-size:20px; margin-bottom:10px;
+    }
+    .stat-val  { font-size:26px; font-weight:700; line-height:1; margin-bottom:3px; }
+    .stat-lbl  { font-size:11px; color:var(--gray); text-transform:uppercase; letter-spacing:.8px; }
+    .stat-meta { font-size:11px; color:#adb5bd; margin-top:3px; }
+
+    /* ── SECTION CARD ── */
     .section-card {
-      background: #fff; border-radius: 14px; padding: 22px;
-      box-shadow: 0 2px 12px rgba(0,0,0,0.07); margin-bottom: 24px;
+      background:#fff; border-radius:14px; padding:20px 22px;
+      box-shadow:0 2px 12px rgba(0,0,0,.07); margin-bottom:22px;
     }
-    .sec-title { font-size: 15px; font-weight: 700; color: #212529; margin-bottom: 3px; }
-    .sec-sub   { font-size: 12px; color: #adb5bd; margin-bottom: 16px; }
+    .sec-title { font-size:14px; font-weight:700; color:#212529; margin-bottom:4px; }
+    .sec-sub   { font-size:11px; color:#adb5bd; margin-bottom:14px; }
 
-    /* UPTIME BAR */
-    .uptime-bar { display: flex; gap: 3px; height: 34px; }
-    .seg { flex: 1; border-radius: 4px; cursor: default; transition: transform 0.15s; }
-    .seg:hover { transform: scaleY(1.12); }
-    .seg.up      { background: #28a745; }
-    .seg.down    { background: #dc3545; }
-    .seg.loading { background: #dee2e6; animation: shimmer 1.5s infinite; }
-    @keyframes shimmer { 0%,100%{opacity:0.5;} 50%{opacity:1;} }
+    /* ── UPTIME BAR ── */
+    .uptime-bar { display:flex; gap:3px; height:32px; }
+    .seg { flex:1; border-radius:4px; cursor:default; transition:transform .15s; }
+    .seg:hover { transform:scaleY(1.15); }
+    .seg.up   { background:var(--green); }
+    .seg.down { background:var(--red); }
+    .seg.load { background:#dee2e6; animation:pulse 1.5s infinite; }
+    @keyframes pulse { 0%,100%{opacity:.5;} 50%{opacity:1;} }
 
-    /* LIVE BADGE */
-    .live-badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      background: #d4edda; border: 1px solid #c3e6cb;
-      color: #155724; padding: 4px 12px; border-radius: 100px;
-      font-size: 12px; font-weight: 600;
-    }
-    .live-dot { width: 7px; height: 7px; border-radius: 50%; background: #28a745; animation: blink 1.5s infinite; }
-    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+    /* ── CHART ── */
+    .chart-wrap { position:relative; height:200px; }
+    .dleg { display:flex; gap:14px; justify-content:center; margin-top:10px; flex-wrap:wrap; }
+    .dleg-item { display:flex; align-items:center; gap:5px; font-size:12px; color:#495057; }
+    .dleg-dot  { width:10px; height:10px; border-radius:2px; }
 
-    /* LOG */
-    .log-scroll { max-height: 260px; overflow-y: auto; }
+    /* ── LOG ── */
+    .log-scroll { max-height:240px; overflow-y:auto; }
     .log-item {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 8px 0; border-bottom: 1px solid #f1f3f5;
-      font-size: 13px;
+      display:flex; align-items:center; justify-content:space-between;
+      padding:7px 0; border-bottom:1px solid #f1f3f5; font-size:12px;
     }
-    .log-item:last-child { border-bottom: none; }
-    .log-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink:0; margin-right: 9px; }
-    .log-dot.up   { background: #28a745; }
-    .log-dot.down { background: #dc3545; }
+    .log-item:last-child { border-bottom:none; }
+    .ldot { width:7px; height:7px; border-radius:50%; flex-shrink:0; margin-right:8px; }
+    .ldot.up { background:var(--green); } .ldot.down { background:var(--red); }
 
-    /* CHART */
-    .chart-wrap { position: relative; height: 220px; }
-
-    /* DONUT LEGEND */
-    .dleg { display: flex; gap: 16px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
-    .dleg-item { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #495057; }
-    .dleg-dot  { width: 10px; height: 10px; border-radius: 2px; }
-
-    /* SPINNER */
-    .spin {
-      display: inline-block; width: 16px; height: 16px;
-      border: 2px solid #dee2e6; border-top-color: #0d6efd;
-      border-radius: 50%; animation: sp 0.8s linear infinite; vertical-align: middle;
+    /* ── LIVE BADGE ── */
+    .live-badge {
+      display:inline-flex; align-items:center; gap:6px;
+      background:#d4edda; border:1px solid #c3e6cb; color:#155724;
+      padding:4px 12px; border-radius:100px; font-size:12px; font-weight:600;
     }
-    @keyframes sp { to { transform: rotate(360deg); } }
+    .live-dot { width:7px; height:7px; border-radius:50%; background:var(--green); animation:blink 1.5s infinite; }
+    @keyframes blink { 0%,100%{opacity:1;} 50%{opacity:.3;} }
 
-    /* RESPONSIVE */
-    @media (max-width: 768px) {
-      .status-hero { flex-direction: column; align-items: flex-start; }
-      .hero-metrics { gap: 16px; }
-      .url-bar { flex-direction: column; align-items: stretch; }
+    /* ═══════════════════════════════════════════════
+       KENGAYTIRILGAN PANELLAR — GRID
+    ═══════════════════════════════════════════════ */
+    .rt-grid {
+      display:grid;
+      grid-template-columns:repeat(auto-fill, minmax(330px, 1fr));
+      gap:16px;
+    }
+
+    /* Panel karta */
+    .rt-card {
+      background:#fff; border-radius:14px;
+      box-shadow:0 2px 12px rgba(0,0,0,.07);
+      overflow:hidden; display:flex; flex-direction:column;
+      border-top:3px solid #e9ecef; transition:border-color .3s, box-shadow .2s;
+    }
+    .rt-card:hover { box-shadow:0 6px 24px rgba(0,0,0,.1); }
+    .rt-card.ok      { border-top-color:var(--green); }
+    .rt-card.warn    { border-top-color:var(--yellow); }
+    .rt-card.danger  { border-top-color:var(--red); }
+    .rt-card.info    { border-top-color:var(--blue); }
+    .rt-card.fetching{ border-top-color:#adb5bd; }
+
+    /* Panel header */
+    .rt-head {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 16px 10px; border-bottom:1px solid #f1f3f5;
+    }
+    .rt-title { font-size:13px; font-weight:700; color:#212529; display:flex; align-items:center; gap:8px; }
+    .rt-meta  { display:flex; align-items:center; gap:8px; }
+    .rt-upd   { font-size:10px; color:#adb5bd; white-space:nowrap; }
+
+    /* Status pill */
+    .spill {
+      display:inline-flex; align-items:center; gap:4px;
+      padding:2px 9px; border-radius:20px; font-size:10px; font-weight:700;
+    }
+    .spill .dot { width:5px; height:5px; border-radius:50%; background:currentColor; }
+    .spill.ok      { background:#d4edda; color:#155724; }
+    .spill.warn    { background:#fff3cd; color:#856404; }
+    .spill.danger  { background:#f8d7da; color:#721c24; }
+    .spill.info    { background:#cce5ff; color:#004085; }
+    .spill.neutral { background:#e9ecef; color:#495057; }
+    .spill.fetch   { background:#e9ecef; color:#495057; }
+
+    /* Countdown ring */
+    .cd { position:relative; width:30px; height:30px; flex-shrink:0; }
+    .cd svg { display:block; transform:rotate(-90deg); }
+    .cd circle      { fill:none; stroke:#e9ecef; stroke-width:3; }
+    .cd .cdprog     { stroke:var(--blue); stroke-linecap:round; stroke-dasharray:75.4; transition:stroke-dashoffset 1s linear; }
+    .cd .cdnum      { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:var(--blue); pointer-events:none; }
+
+    /* Panel body */
+    .rt-body { padding:14px 16px; flex:1; font-size:12px; }
+
+    /* Info rows */
+    .ir { display:flex; justify-content:space-between; align-items:flex-start; padding:5px 0; border-bottom:1px solid #f8f9fa; font-size:12px; }
+    .ir:last-child { border-bottom:none; }
+    .irk { color:#6c757d; font-weight:600; flex-shrink:0; margin-right:8px; }
+    .irv { color:#212529; text-align:right; word-break:break-all; }
+
+    /* Alert block */
+    .ab { border-radius:8px; padding:7px 10px; font-size:11px; margin-bottom:10px; display:flex; align-items:flex-start; gap:6px; }
+    .ab.ok      { background:#d4edda; border:1px solid #c3e6cb; color:#155724; }
+    .ab.warn    { background:#fff3cd; border:1px solid #ffc107; color:#856404; }
+    .ab.danger  { background:#f8d7da; border:1px solid #f5c6cb; color:#721c24; }
+    .ab.info    { background:#cce5ff; border:1px solid #b8daff; color:#004085; }
+
+    /* DNS chips */
+    .dns-chip { display:inline-flex; align-items:center; gap:4px; background:#f8f9fa; border:1px solid #e9ecef; border-radius:5px; padding:2px 7px; margin:2px; font-family:monospace; font-size:10px; color:#495057; }
+    .dns-type { font-size:8px; font-weight:700; color:#fff; background:var(--blue); padding:1px 4px; border-radius:3px; }
+
+    /* Port chips */
+    .pc { display:inline-flex; align-items:center; gap:3px; padding:2px 7px; border-radius:5px; font-size:10px; font-weight:600; margin:2px; }
+    .pc.open  { background:#d4edda; color:#155724; }
+    .pc.risky { background:#f8d7da; color:#721c24; }
+
+    /* Redirect step */
+    .rs { display:flex; align-items:center; gap:6px; padding:4px 8px; border-radius:6px; background:#f8f9fa; border:1px solid #e9ecef; margin-bottom:3px; font-size:11px; }
+
+    /* Geo box */
+    .geo-box { background:linear-gradient(135deg,#e7f1ff,#f0fff4); border-radius:10px; padding:12px; display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+
+    /* Severity badge */
+    .sv { padding:1px 6px; border-radius:4px; font-size:9px; font-weight:700; }
+    .sv-ok      { background:#d4edda; color:#155724; }
+    .sv-low     { background:#cce5ff; color:#004085; }
+    .sv-medium  { background:#fff3cd; color:#856404; }
+    .sv-high    { background:#f8d7da; color:#721c24; }
+    .sv-critical{ background:#dc3545; color:#fff; }
+
+    /* Panel loading */
+    .ploading { display:flex; align-items:center; justify-content:center; gap:8px; color:#adb5bd; padding:20px 0; font-size:12px; }
+    .spin { display:inline-block; width:13px; height:13px; border:2px solid #dee2e6; border-top-color:var(--blue); border-radius:50%; animation:sp .8s linear infinite; }
+    @keyframes sp { to { transform:rotate(360deg); } }
+
+    /* Metrics row */
+    .mrow { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .mbox { background:#f8f9fa; border-radius:8px; padding:8px; text-align:center; }
+    .mbox-val { font-size:15px; font-weight:700; }
+    .mbox-lbl { font-size:10px; color:#adb5bd; margin-top:2px; }
+
+    @media(max-width:768px){
+      .status-hero { flex-direction:column; align-items:flex-start; }
+      .rt-grid { grid-template-columns:1fr; }
+      .url-bar { flex-direction:column; align-items:stretch; }
     }
   </style>
 </head>
 <body>
 
-<!-- NAVBAR (index.html dagi kabi) -->
+<!-- NAVBAR -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
   <div class="container">
-    <a class="navbar-brand" href="{{ url_for('index') }}">
-      <i class="fas fa-shield-alt"></i> SecureScan
-    </a>
-    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+    <a class="navbar-brand" href="{{ url_for('index') }}"><i class="fas fa-shield-alt"></i>SecureScan</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#nb">
       <span class="navbar-toggler-icon"></span>
     </button>
-    <div class="collapse navbar-collapse" id="navbarNav">
+    <div class="collapse navbar-collapse" id="nb">
       <ul class="navbar-nav ms-auto">
         <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}">Bosh sahifa</a></li>
         {% if session.get('user_id') %}
@@ -170,103 +251,87 @@
 
 <!-- FLASH -->
 <div class="container mt-3">
-  {% with messages = get_flashed_messages(with_categories=true) %}
-  {% if messages %}
-    {% for category, message in messages %}
-    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-      {{ message }}
-      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+  {% with messages = get_flashed_messages(with_categories=true) %}{% if messages %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }} alert-dismissible fade show">
+      {{ msg }}<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
     </div>
     {% endfor %}
-  {% endif %}
-  {% endwith %}
+  {% endif %}{% endwith %}
 </div>
 
-<!-- PAGE CONTENT -->
 <div class="container my-4">
 
   <!-- PAGE HEADER -->
-  <div class="d-flex align-items-center justify-content-between mb-4">
+  <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-2">
     <div>
       <h2 class="fw-bold mb-1"><i class="fas fa-satellite-dish text-primary me-2"></i>Monitoring Tizimi</h2>
-      <p class="text-muted mb-0" style="font-size:14px;">Har 30 soniyada avtomatik yangilanadi</p>
+      <p class="text-muted mb-0" style="font-size:13px;">
+        Har bir panel mustaqil real-vaqt rejimida yangilanadi
+      </p>
     </div>
-    <span class="live-badge"><span class="live-dot"></span> JONLI</span>
+    <span class="live-badge"><span class="live-dot"></span>JONLI</span>
   </div>
 
-  <!-- URL INPUT BAR -->
+  <!-- URL BAR -->
   <div class="url-bar">
-    <label><i class="fas fa-link me-1 text-primary"></i> URL:</label>
-    <input type="text" id="urlInput"
-           placeholder="kun.uz yoki https://saytingiz.uz"
-           value="{{ default_url }}">
-    <span class="active-tag" id="currentTag">{{ default_url }}</span>
-    <button class="btn btn-primary px-4" id="startBtn" onclick="startMonitoring()">
-      <i class="fas fa-play me-1"></i> Kuzatish
+    <label style="font-size:13px;color:var(--gray);font-weight:600;flex-shrink:0;">
+      <i class="fas fa-link text-primary me-1"></i>URL:
+    </label>
+    <input type="text" id="urlInput" placeholder="kun.uz yoki https://sayt.uz" value="{{ default_url }}">
+    <span class="active-tag" id="activeTag">{{ default_url }}</span>
+    <button class="btn btn-primary px-4" onclick="startAll()">
+      <i class="fas fa-play me-1"></i>Kuzatish
     </button>
   </div>
 
   <!-- STATUS HERO -->
-  <div class="status-hero loading" id="statusCard">
+  <div class="status-hero" id="statusHero">
     <div class="d-flex align-items-center gap-3">
-      <div class="hero-icon loading" id="heroIcon">
-        <i class="fas fa-circle-notch fa-spin"></i>
-      </div>
+      <div class="hero-icon load" id="heroIcon"><i class="fas fa-circle-notch fa-spin"></i></div>
       <div>
-        <div class="hero-domain" id="heroDomain">{{ default_url }}</div>
-        <div class="hero-meta" id="heroMeta">Tekshirilmoqda...</div>
+        <div style="font-size:19px;font-weight:700;" id="heroDomain">{{ default_url }}</div>
+        <div style="font-size:12px;color:var(--gray);margin-top:3px;" id="heroMeta">Tekshirilmoqda...</div>
       </div>
     </div>
-    <div class="hero-metrics">
-      <div class="hm">
-        <div class="hm-val text-primary" id="hResponse">—</div>
-        <div class="hm-lbl">Javob vaqti</div>
-      </div>
-      <div class="hm">
-        <div class="hm-val text-success" id="hUptime">—%</div>
-        <div class="hm-lbl">Uptime 24s</div>
-      </div>
-      <div class="hm">
-        <div class="hm-val text-warning" id="hSSL">—</div>
-        <div class="hm-lbl">SSL kun</div>
-      </div>
-      <div class="hm">
-        <div class="hm-val text-secondary" id="hCode">—</div>
-        <div class="hm-lbl">HTTP kod</div>
-      </div>
+    <div class="d-flex gap-5 flex-shrink-0">
+      <div class="hm"><div class="hm-val text-primary"  id="hRT">—</div><div class="hm-lbl">Javob vaqti</div></div>
+      <div class="hm"><div class="hm-val text-success"  id="hUP">—%</div><div class="hm-lbl">Uptime 24s</div></div>
+      <div class="hm"><div class="hm-val text-warning"  id="hSS">—</div><div class="hm-lbl">SSL kun</div></div>
+      <div class="hm"><div class="hm-val text-secondary"id="hHC">—</div><div class="hm-lbl">HTTP kod</div></div>
     </div>
   </div>
 
-  <!-- STAT CARDS ROW -->
+  <!-- STAT CARDS -->
   <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
-      <div class="stat-card bg-white">
+      <div class="stat-card">
         <div class="stat-icon bg-success bg-opacity-10 text-success"><i class="fas fa-check-circle"></i></div>
-        <div class="stat-val text-success" id="sUptime">—%</div>
+        <div class="stat-val text-success" id="sUP">—%</div>
         <div class="stat-lbl">Uptime</div>
-        <div class="stat-meta" id="sUptimeMeta">Yuklanmoqda...</div>
+        <div class="stat-meta" id="sUPm">Yuklanmoqda...</div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="stat-card bg-white">
+      <div class="stat-card">
         <div class="stat-icon bg-primary bg-opacity-10 text-primary"><i class="fas fa-tachometer-alt"></i></div>
-        <div class="stat-val text-primary" id="sAvg">—ms</div>
+        <div class="stat-val text-primary" id="sAV">—ms</div>
         <div class="stat-lbl">O'rtacha javob</div>
-        <div class="stat-meta" id="sAvgMeta">Min / Max</div>
+        <div class="stat-meta" id="sAVm">Min / Max</div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="stat-card bg-white">
+      <div class="stat-card">
         <div class="stat-icon bg-info bg-opacity-10 text-info"><i class="fas fa-clipboard-list"></i></div>
-        <div class="stat-val text-info" id="sTotal">—</div>
+        <div class="stat-val text-info" id="sTT">—</div>
         <div class="stat-lbl">Jami tekshiruv</div>
         <div class="stat-meta">So'nggi 24 soat</div>
       </div>
     </div>
     <div class="col-6 col-md-3">
-      <div class="stat-card bg-white">
+      <div class="stat-card">
         <div class="stat-icon bg-danger bg-opacity-10 text-danger"><i class="fas fa-exclamation-triangle"></i></div>
-        <div class="stat-val text-danger" id="sDown">—</div>
+        <div class="stat-val text-danger" id="sDN">—</div>
         <div class="stat-lbl">Uzilishlar</div>
         <div class="stat-meta">So'nggi 24 soat</div>
       </div>
@@ -276,29 +341,29 @@
   <!-- UPTIME BAR -->
   <div class="section-card">
     <div class="sec-title"><i class="fas fa-history text-primary me-2"></i>Uptime Tarixi</div>
-    <div class="sec-sub">Har blok = 1 tekshiruv &nbsp;·&nbsp; 🟢 Ishlaydi &nbsp;·&nbsp; 🔴 Ishlamaydi</div>
+    <div class="sec-sub">🟢 Ishlaydi &nbsp;·&nbsp; 🔴 Ishlamaydi &nbsp;·&nbsp; Har blok = 1 tekshiruv</div>
     <div class="uptime-bar" id="uptimeBar">
-      {% for i in range(40) %}<div class="seg loading"></div>{% endfor %}
+      {% for i in range(50) %}<div class="seg load"></div>{% endfor %}
     </div>
   </div>
 
-  <!-- CHARTS ROW -->
+  <!-- CHARTS -->
   <div class="row g-3 mb-4">
     <div class="col-lg-8">
       <div class="section-card mb-0">
         <div class="sec-title"><i class="fas fa-chart-line text-primary me-2"></i>Javob Vaqti Grafigi</div>
-        <div class="sec-sub">So'nggi tekshiruvlardagi millisekund ko'rsatkichlari</div>
-        <div class="chart-wrap"><canvas id="responseChart"></canvas></div>
+        <div class="sec-sub">Millisekund · Yashil nuqta = ishlaydi, Qizil = ishlamaydi</div>
+        <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
       </div>
     </div>
     <div class="col-lg-4">
       <div class="section-card mb-0">
         <div class="sec-title"><i class="fas fa-chart-pie text-primary me-2"></i>Holat Nisbati</div>
         <div class="sec-sub">Ishlaydi vs Ishlamaydi</div>
-        <div class="chart-wrap" style="height:180px;"><canvas id="donutChart"></canvas></div>
+        <div class="chart-wrap" style="height:170px;"><canvas id="donutChart"></canvas></div>
         <div class="dleg">
-          <div class="dleg-item"><div class="dleg-dot" style="background:#28a745;"></div>Ishlaydi (<span id="legUp">—</span>)</div>
-          <div class="dleg-item"><div class="dleg-dot" style="background:#dc3545;"></div>Ishlamaydi (<span id="legDown">—</span>)</div>
+          <div class="dleg-item"><div class="dleg-dot" style="background:var(--green)"></div>Ishlaydi (<span id="legU">—</span>)</div>
+          <div class="dleg-item"><div class="dleg-dot" style="background:var(--red)"></div>Ishlamaydi (<span id="legD">—</span>)</div>
         </div>
       </div>
     </div>
@@ -309,267 +374,797 @@
     <div class="col-lg-6">
       <div class="section-card mb-0">
         <div class="sec-title"><i class="fas fa-list-alt text-primary me-2"></i>So'nggi Tekshiruvlar</div>
-        <div class="sec-sub" style="margin-bottom:12px;">Real-vaqt log</div>
-        <div class="log-scroll" id="logList">
-          <div class="text-muted" style="font-size:13px;">Yuklanmoqda...</div>
-        </div>
+        <div class="sec-sub">Real-vaqt log</div>
+        <div class="log-scroll" id="logList"><div class="text-muted" style="font-size:12px;">Yuklanmoqda...</div></div>
       </div>
     </div>
     <div class="col-lg-6">
       <div class="section-card mb-0">
         <div class="sec-title"><i class="fas fa-clock text-primary me-2"></i>Soatlik Ko'rsatkich</div>
-        <div class="sec-sub" style="margin-bottom:0;">So'nggi 24 soat</div>
-        <div class="chart-wrap" style="height:240px;"><canvas id="hourlyChart"></canvas></div>
+        <div class="sec-sub">So'nggi 24 soat</div>
+        <div class="chart-wrap" style="height:230px;"><canvas id="barChart"></canvas></div>
       </div>
     </div>
   </div>
 
-</div><!-- /container -->
+  <!-- ═══════════════════════════════════════════════
+       REAL-VAQT KENGAYTIRILGAN PANELLAR
+  ═══════════════════════════════════════════════ -->
+  <div class="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+    <div>
+      <h5 class="fw-bold mb-0">
+        <i class="fas fa-broadcast-tower text-primary me-2"></i>Kengaytirilgan Real-Vaqt Monitoring
+      </h5>
+      <small class="text-muted">
+        Har panel o'z jadvaliga ko'ra avtomatik yangilanadi.
+        Hisoblagich = keyingi yangilanishgacha soniyalar.
+      </small>
+    </div>
+    <div class="d-flex gap-2 align-items-center">
+      <span id="pauseLabel" class="text-muted" style="font-size:12px;"></span>
+      <button class="btn btn-outline-secondary btn-sm" id="pauseBtn" onclick="togglePause()">
+        <i class="fas fa-pause me-1"></i>To'xtatish
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="forceRefreshAll()">
+        <i class="fas fa-sync me-1"></i>Hammasini yangilash
+      </button>
+    </div>
+  </div>
 
-<!-- FOOTER -->
-<footer class="bg-dark text-white py-4 mt-4">
-  <div class="container">
-    <div class="row">
-      <div class="col-md-6">
-        <h5><i class="fas fa-shield-alt"></i> SecureScan</h5>
-        <p class="mb-0">Zamonaviy tarmoq xavfsizligi skaneri</p>
+  <div class="rt-grid" id="rtGrid">
+
+    <!-- ① DNS  60s -->
+    <div class="rt-card" id="rtcard-dns">
+      <div class="rt-head">
+        <div class="rt-title">
+          <i class="fas fa-network-wired text-primary"></i>
+          DNS Monitoring
+          <span class="spill neutral" id="spill-dns"><span class="dot"></span>Kutilmoqda</span>
+        </div>
+        <div class="rt-meta">
+          <span class="rt-upd" id="upd-dns"></span>
+          <div class="cd" title="Keyingi yangilanishgacha">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+              <circle cx="15" cy="15" r="12"/>
+              <circle class="cdprog" id="cdp-dns" cx="15" cy="15" r="12" stroke-dashoffset="0"/>
+            </svg>
+            <div class="cdnum" id="cdn-dns">—</div>
+          </div>
+        </div>
       </div>
-      <div class="col-md-6 text-md-end">
-        <p class="mb-0">&copy; 2025 SecureScan. Barcha huquqlar himoyalangan.</p>
+      <div class="rt-body" id="body-dns">
+        <div class="ploading"><span class="spin"></span>Yuklanmoqda...</div>
       </div>
     </div>
+
+    <!-- ② WHOIS  300s -->
+    <div class="rt-card" id="rtcard-whois">
+      <div class="rt-head">
+        <div class="rt-title">
+          <i class="fas fa-id-card text-success"></i>
+          WHOIS
+          <span class="spill neutral" id="spill-whois"><span class="dot"></span>Kutilmoqda</span>
+        </div>
+        <div class="rt-meta">
+          <span class="rt-upd" id="upd-whois"></span>
+          <div class="cd">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+              <circle cx="15" cy="15" r="12"/>
+              <circle class="cdprog" id="cdp-whois" cx="15" cy="15" r="12" stroke-dashoffset="0"/>
+            </svg>
+            <div class="cdnum" id="cdn-whois">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="rt-body" id="body-whois">
+        <div class="ploading"><span class="spin"></span>Yuklanmoqda...</div>
+      </div>
+    </div>
+
+    <!-- ③ REDIRECTS  60s -->
+    <div class="rt-card" id="rtcard-redirects">
+      <div class="rt-head">
+        <div class="rt-title">
+          <i class="fas fa-route text-warning"></i>
+          Redirect Zanjiri
+          <span class="spill neutral" id="spill-redirects"><span class="dot"></span>Kutilmoqda</span>
+        </div>
+        <div class="rt-meta">
+          <span class="rt-upd" id="upd-redirects"></span>
+          <div class="cd">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+              <circle cx="15" cy="15" r="12"/>
+              <circle class="cdprog" id="cdp-redirects" cx="15" cy="15" r="12" stroke-dashoffset="0"/>
+            </svg>
+            <div class="cdnum" id="cdn-redirects">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="rt-body" id="body-redirects">
+        <div class="ploading"><span class="spin"></span>Yuklanmoqda...</div>
+      </div>
+    </div>
+
+    <!-- ④ HEADERS  120s -->
+    <div class="rt-card" id="rtcard-headers">
+      <div class="rt-head">
+        <div class="rt-title">
+          <i class="fas fa-shield-alt text-info"></i>
+          HTTP Headers
+          <span class="spill neutral" id="spill-headers"><span class="dot"></span>Kutilmoqda</span>
+        </div>
+        <div class="rt-meta">
+          <span class="rt-upd" id="upd-headers"></span>
+          <div class="cd">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+              <circle cx="15" cy="15" r="12"/>
+              <circle class="cdprog" id="cdp-headers" cx="15" cy="15" r="12" stroke-dashoffset="0"/>
+            </svg>
+            <div class="cdnum" id="cdn-headers">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="rt-body" id="body-headers">
+        <div class="ploading"><span class="spin"></span>Yuklanmoqda...</div>
+      </div>
+    </div>
+
+    <!-- ⑤ PING  30s -->
+    <div class="rt-card" id="rtcard-ping">
+      <div class="rt-head">
+        <div class="rt-title">
+          <i class="fas fa-satellite text-danger"></i>
+          Ping / RTT
+          <span class="spill neutral" id="spill-ping"><span class="dot"></span>Kutilmoqda</span>
+        </div>
+        <div class="rt-meta">
+          <span class="rt-upd" id="upd-ping"></span>
+          <div class="cd">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+              <circle cx="15" cy="15" r="12"/>
+              <circle class="cdprog" id="cdp-ping" cx="15" cy="15" r="12" stroke-dashoffset="0"/>
+            </svg>
+            <div class="cdnum" id="cdn-ping">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="rt-body" id="body-ping">
+        <div class="ploading"><span class="spin"></span>Yuklanmoqda...</div>
+      </div>
+    </div>
+
+    <!-- ⑥ PORTLAR  180s -->
+    <div class="rt-card" id="rtcard-ports">
+      <div class="rt-head">
+        <div class="rt-title">
+          <i class="fas fa-door-open text-secondary"></i>
+          Portlar
+          <span class="spill neutral" id="spill-ports"><span class="dot"></span>Kutilmoqda</span>
+        </div>
+        <div class="rt-meta">
+          <span class="rt-upd" id="upd-ports"></span>
+          <div class="cd">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+              <circle cx="15" cy="15" r="12"/>
+              <circle class="cdprog" id="cdp-ports" cx="15" cy="15" r="12" stroke-dashoffset="0"/>
+            </svg>
+            <div class="cdnum" id="cdn-ports">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="rt-body" id="body-ports">
+        <div class="ploading"><span class="spin"></span>Yuklanmoqda...</div>
+      </div>
+    </div>
+
+    <!-- ⑦ MAZMUN  120s -->
+    <div class="rt-card" id="rtcard-content">
+      <div class="rt-head">
+        <div class="rt-title">
+          <i class="fas fa-file-alt" style="color:var(--purple)"></i>
+          Mazmun Nazorati
+          <span class="spill neutral" id="spill-content"><span class="dot"></span>Kutilmoqda</span>
+        </div>
+        <div class="rt-meta">
+          <span class="rt-upd" id="upd-content"></span>
+          <div class="cd">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+              <circle cx="15" cy="15" r="12"/>
+              <circle class="cdprog" id="cdp-content" cx="15" cy="15" r="12" stroke-dashoffset="0"/>
+            </svg>
+            <div class="cdnum" id="cdn-content">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="rt-body" id="body-content">
+        <div class="ploading"><span class="spin"></span>Yuklanmoqda...</div>
+      </div>
+    </div>
+
+    <!-- ⑧ GeoIP  600s -->
+    <div class="rt-card" id="rtcard-geoip">
+      <div class="rt-head">
+        <div class="rt-title">
+          <i class="fas fa-globe text-primary"></i>
+          GeoIP / Server joylashuvi
+          <span class="spill neutral" id="spill-geoip"><span class="dot"></span>Kutilmoqda</span>
+        </div>
+        <div class="rt-meta">
+          <span class="rt-upd" id="upd-geoip"></span>
+          <div class="cd">
+            <svg width="30" height="30" viewBox="0 0 30 30">
+              <circle cx="15" cy="15" r="12"/>
+              <circle class="cdprog" id="cdp-geoip" cx="15" cy="15" r="12" stroke-dashoffset="0"/>
+            </svg>
+            <div class="cdnum" id="cdn-geoip">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="rt-body" id="body-geoip">
+        <div class="ploading"><span class="spin"></span>Yuklanmoqda...</div>
+      </div>
+    </div>
+
+  </div><!-- /rt-grid -->
+</div><!-- /container -->
+
+<footer class="bg-dark text-white py-4 mt-5">
+  <div class="container d-flex justify-content-between flex-wrap gap-2">
+    <div><h6 class="mb-0"><i class="fas fa-shield-alt me-1"></i>SecureScan</h6><small>Zamonaviy tarmoq xavfsizligi</small></div>
+    <small class="text-muted align-self-center">&copy; 2025 SecureScan</small>
   </div>
 </footer>
 
 <script src="{{ url_for('static', filename='js/bootstrap.bundle.min.js') }}"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
-  let currentUrl   = "{{ default_url }}";
-  let refreshTimer = null;
-  let rChart = null, dChart = null, hChart = null;
+/* ═══════════════════════════════════════════════════════════
+   MONITORING.JS  — Real-vaqt barcha 8 panel
+═══════════════════════════════════════════════════════════ */
+'use strict';
 
-  // ─── START / CHANGE URL ────────────────────────────────────
-  function startMonitoring() {
-    let val = document.getElementById('urlInput').value.trim();
-    if (!val) val = 'https://kun.uz';
-    if (!val.startsWith('http://') && !val.startsWith('https://')) val = 'https://' + val;
-    currentUrl = val;
+/* ── Global holat ─────────────────────────────────────── */
+let URL_NOW   = '{{ default_url }}';
+let IS_PAUSED = false;
+let BASIC_TID = null;
+let LC = null, DC = null, BC = null;   // Chart.js instances
 
-    document.getElementById('currentTag').textContent = val.replace(/https?:\/\//,'');
-    document.getElementById('heroDomain').textContent  = val;
-    document.getElementById('heroMeta').textContent    = 'Tekshirilmoqda...';
+/* ── Panel konfiguratsiyasi ───────────────────────────────
+   interval : soniya
+   endpoint : Flask route
+   bkey     : so'rov JSON kaliti ('url' | 'domain' | 'host')
+   tid      : setInterval ID
+   cd       : countdown qolgan soniya
+*/
+const P = {
+  dns:       { interval:  60, endpoint:'/monitoring/dns',          bkey:'domain', tid:null, cd:0 },
+  whois:     { interval: 300, endpoint:'/monitoring/whois',         bkey:'domain', tid:null, cd:0 },
+  redirects: { interval:  60, endpoint:'/monitoring/redirects',     bkey:'url',    tid:null, cd:0 },
+  headers:   { interval: 120, endpoint:'/monitoring/headers/deep',  bkey:'url',    tid:null, cd:0 },
+  ping:      { interval:  30, endpoint:'/monitoring/ping',          bkey:'host',   tid:null, cd:0 },
+  ports:     { interval: 180, endpoint:'/monitoring/ports/history', bkey:'host',   tid:null, cd:0 },
+  content:   { interval: 120, endpoint:'/monitoring/content',       bkey:'url',    tid:null, cd:0 },
+  geoip:     { interval: 600, endpoint:'/monitoring/geoip',         bkey:'host',   tid:null, cd:0 },
+};
 
-    const card = document.getElementById('statusCard');
-    card.className = 'status-hero loading';
-    const icon = document.getElementById('heroIcon');
-    icon.className = 'hero-icon loading';
-    icon.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i>';
+/* ── URL yordamchi ────────────────────────────────────── */
+const toHost   = u => { try{ return new URL(u).hostname; }catch{ return u.replace(/https?:\/\//,'').split('/')[0]; } };
+const toDomain = u => toHost(u).replace(/^www\./,'');
+const body4    = (bkey, url) => {
+  if (bkey==='domain') return { domain: toDomain(url) };
+  if (bkey==='host')   return { host:   toHost(url) };
+  return { url };
+};
 
-    document.getElementById('uptimeBar').innerHTML =
-      Array(40).fill('<div class="seg loading"></div>').join('');
+/* ── UI yordamchi ─────────────────────────────────────── */
+const $  = id => document.getElementById(id);
+const ir = (k,v) => `<div class="ir"><span class="irk">${k}</span><span class="irv">${v||'—'}</span></div>`;
+const sv = s => { const m={ok:'sv-ok',low:'sv-low',medium:'sv-medium',high:'sv-high',critical:'sv-critical'}; return `<span class="sv ${m[(s||'').toLowerCase()]||'sv-low'}">${(s||'—').toUpperCase()}</span>`; };
 
-    if (refreshTimer) clearInterval(refreshTimer);
-    doCheck(); loadStats();
-    refreshTimer = setInterval(() => { doCheck(); loadStats(); }, 30000);
-  }
+function setPill(name, type, txt){
+  const el=$('spill-'+name); if(!el)return;
+  el.className='spill '+type;
+  el.innerHTML=`<span class="dot"></span>${txt}`;
+}
+function setCard(name, type){
+  const el=$('rtcard-'+name); if(!el)return;
+  el.className='rt-card '+(type||'');
+}
+function setUpd(name){
+  const el=$('upd-'+name); if(el) el.textContent=new Date().toLocaleTimeString('uz-UZ',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function setLoading(name){
+  $('body-'+name).innerHTML='<div class="ploading"><span class="spin"></span>Yuklanmoqda...</div>';
+}
+function setErr(name, msg){
+  $('body-'+name).innerHTML=`<div class="d-flex align-items-center gap-2 text-danger" style="font-size:12px;padding:8px 0;"><i class="fas fa-exclamation-circle"></i><span>${msg}</span></div>`;
+  setPill(name,'danger','Xatolik');
+  setCard(name,'danger');
+}
+function ab(type, icon, html){ return `<div class="ab ${type}"><i class="fas fa-${icon} flex-shrink-0 mt-1"></i><div>${html}</div></div>`; }
 
-  // ─── CHECK ─────────────────────────────────────────────────
-  async function doCheck() {
-    try {
-      const res  = await fetch('/monitoring/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: currentUrl })
-      });
-      const d = await res.json();
-      updateHero(d);
-    } catch(e) { console.error(e); }
-  }
+/* ── Countdown halqasi ────────────────────────────────── */
+const C75 = 75.4;  // 2π×12
+function ringUpdate(name, rem, total){
+  const prog=$('cdp-'+name), num=$('cdn-'+name);
+  if(prog) prog.style.strokeDashoffset = C75*(1 - rem/total);
+  if(num)  num.textContent = rem>=60 ? Math.round(rem/60)+'m' : rem+'s';
+}
 
-  function updateHero(d) {
-    const card = document.getElementById('statusCard');
-    const icon = document.getElementById('heroIcon');
+/* ── Panel startlash / fetch ──────────────────────────── */
+function panelStart(name, immediate=false){
+  const cfg=P[name];
+  if(cfg.tid) clearInterval(cfg.tid);
+  cfg.cd = cfg.interval;
+  ringUpdate(name, cfg.cd, cfg.interval);
+  if(immediate) panelFetch(name);
 
-    if (d.is_up) {
-      card.className = 'status-hero up';
-      icon.className = 'hero-icon up';
-      icon.innerHTML = '<i class="fas fa-check"></i>';
-      document.getElementById('heroMeta').textContent =
-        `HTTP ${d.status_code} · Javob: ${d.response_time}ms` +
-        (d.ssl_days_left ? ` · SSL ${d.ssl_days_left} kun qoldi` : '');
-    } else {
-      card.className = 'status-hero down';
-      icon.className = 'hero-icon down';
-      icon.innerHTML = '<i class="fas fa-times"></i>';
-      document.getElementById('heroMeta').textContent = '⚠️ ' + (d.error || 'Xatolik yuz berdi');
+  cfg.tid = setInterval(()=>{
+    if(IS_PAUSED) return;
+    cfg.cd--;
+    ringUpdate(name, cfg.cd, cfg.interval);
+    if(cfg.cd <= 0){
+      cfg.cd = cfg.interval;
+      panelFetch(name);
     }
+  }, 1000);
+}
 
-    document.getElementById('hResponse').textContent = d.response_time ? d.response_time + 'ms' : '—';
-    document.getElementById('hResponse').className   = 'hm-val ' + (d.is_up ? 'text-success' : 'text-danger');
-    document.getElementById('hCode').textContent     = d.status_code || '—';
-    document.getElementById('hSSL').textContent      = d.ssl_days_left ? d.ssl_days_left + ' kun' : '—';
-  }
-
-  // ─── LOAD STATS ────────────────────────────────────────────
-  async function loadStats() {
-    try {
-      const res  = await fetch(`/monitoring/stats?url=${encodeURIComponent(currentUrl)}&hours=24`);
-      const data = await res.json();
-      updateStatCards(data.stats);
-      updateUptimeBar(data.history);
-      updateLog(data.history);
-      drawCharts(data.chart, data.stats, data.hourly);
-    } catch(e) { console.error(e); }
-  }
-
-  function updateStatCards(s) {
-    const pct = s.uptime_percent;
-    const el  = document.getElementById('sUptime');
-    el.textContent = pct + '%';
-    el.className   = 'stat-val ' + (pct>=99?'text-success':pct>=90?'text-warning':'text-danger');
-    document.getElementById('sUptimeMeta').textContent = `${s.up_count} ok / ${s.total_checks} jami`;
-    document.getElementById('sAvg').textContent        = (s.avg_response_time||0) + 'ms';
-    document.getElementById('sAvgMeta').textContent    = `Min:${s.min_response_time}ms · Max:${s.max_response_time}ms`;
-    document.getElementById('sTotal').textContent      = s.total_checks;
-    document.getElementById('sDown').textContent       = s.down_count;
-    document.getElementById('hUptime').textContent     = pct + '%';
-    document.getElementById('legUp').textContent       = s.up_count;
-    document.getElementById('legDown').textContent     = s.down_count;
-  }
-
-  function updateUptimeBar(history) {
-    const bar = document.getElementById('uptimeBar');
-    if (!history || !history.length) {
-      bar.innerHTML = '<div class="text-muted" style="font-size:13px;padding:8px 0;">Hali ma\'lumot yo\'q</div>';
-      return;
-    }
-    bar.innerHTML = history.map(h => {
-      const tip = `${h.checked_at?h.checked_at.slice(11,16):''} · ${h.is_up?'✓ '+(h.response_time||0)+'ms':'✕ '+(h.error||'Xato')}`;
-      return `<div class="seg ${h.is_up?'up':'down'}" title="${tip}"></div>`;
-    }).join('');
-  }
-
-  function updateLog(history) {
-    const el = document.getElementById('logList');
-    if (!history || !history.length) {
-      el.innerHTML = '<div class="text-muted" style="font-size:13px;">Hali ma\'lumot yo\'q</div>';
-      return;
-    }
-    el.innerHTML = [...history].reverse().slice(0,14).map(h => `
-      <div class="log-item">
-        <div class="d-flex align-items-center">
-          <div class="log-dot ${h.is_up?'up':'down'}"></div>
-          <span class="${h.is_up?'text-success fw-semibold':'text-danger fw-semibold'}">
-            ${h.is_up?'▲ ISHLAYDI':'▼ ISHLAMAYDI'}
-          </span>
-          ${h.response_time?`<span class="text-muted ms-2" style="font-size:12px;">${h.response_time}ms</span>`:''}
-          ${h.error?`<span class="text-danger ms-2" style="font-size:12px;">${h.error}</span>`:''}
-        </div>
-        <span class="text-muted" style="font-size:12px;">${h.checked_at?h.checked_at.slice(11,16):''}</span>
-      </div>`).join('');
-  }
-
-  function drawCharts(cd, stats, hourly) {
-    // Line chart
-    const rCtx = document.getElementById('responseChart').getContext('2d');
-    if (rChart) rChart.destroy();
-    rChart = new Chart(rCtx, {
-      type: 'line',
-      data: {
-        labels: cd.labels,
-        datasets: [{
-          data: cd.response_times, label: 'Javob vaqti (ms)',
-          borderColor: '#0d6efd', backgroundColor: 'rgba(13,110,253,0.08)',
-          borderWidth: 2, tension: 0.4, fill: true, pointRadius: 4,
-          pointBackgroundColor: cd.statuses.map(s => s ? '#28a745' : '#dc3545'),
-          pointBorderColor: '#fff', pointBorderWidth: 1.5,
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: '#f0f0f0' }, ticks: { color: '#6c757d', maxTicksLimit: 8 } },
-          y: { grid: { color: '#f0f0f0' }, ticks: { color: '#6c757d' }, min: 0 }
-        }
-      }
+async function panelFetch(name){
+  if(IS_PAUSED) return;
+  const cfg=P[name];
+  setLoading(name);
+  setCard(name,'fetching');
+  setPill(name,'fetch','Tekshirilmoqda...');
+  try{
+    const res = await fetch(cfg.endpoint,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body4(cfg.bkey, URL_NOW))
     });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const d = await res.json();
+    renderPanel(name, d);
+    setUpd(name);
+  }catch(e){
+    setErr(name, 'Server bilan aloqa yo\'q: '+e.message);
+  }
+}
 
-    // Donut
-    const dCtx = document.getElementById('donutChart').getContext('2d');
-    if (dChart) dChart.destroy();
-    dChart = new Chart(dCtx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Ishlaydi', 'Ishlamaydi'],
-        datasets: [{
-          data: [stats.uptime_percent, Math.max(100-stats.uptime_percent, 0.01)],
-          backgroundColor: ['#28a745','#dc3545'],
-          borderColor: '#ffffff', borderWidth: 3
-        }]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false, cutout: '70%',
-        plugins: {
-          legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${Number(ctx.raw).toFixed(1)}%` } }
-        }
-      }
+/* ── Hammasini to'xtat / davom et ─────────────────────── */
+function togglePause(){
+  IS_PAUSED=!IS_PAUSED;
+  const btn=$('pauseBtn'), lbl=$('pauseLabel');
+  if(IS_PAUSED){
+    btn.innerHTML='<i class="fas fa-play me-1"></i>Davom ettirish';
+    btn.className='btn btn-warning btn-sm';
+    if(lbl) lbl.textContent='⏸ To\'xtatildi';
+  } else {
+    btn.innerHTML='<i class="fas fa-pause me-1"></i>To\'xtatish';
+    btn.className='btn btn-outline-secondary btn-sm';
+    if(lbl) lbl.textContent='';
+  }
+}
+function forceRefreshAll(){
+  Object.keys(P).forEach(n=>{ P[n].cd=P[n].interval; panelFetch(n); });
+}
+
+/* ── URL o'zgarganda barcha monitoring qayta boshlash ──── */
+function startAll(){
+  let v = $('urlInput').value.trim() || 'https://kun.uz';
+  if(!v.startsWith('http://') && !v.startsWith('https://')) v='https://'+v;
+  URL_NOW = v;
+
+  $('activeTag').textContent = v.replace(/https?:\/\//,'');
+  $('heroDomain').textContent = v;
+  $('heroMeta').textContent   = 'Tekshirilmoqda...';
+  $('statusHero').className   = 'status-hero';
+  $('heroIcon').className     = 'hero-icon load';
+  $('heroIcon').innerHTML     = '<i class="fas fa-circle-notch fa-spin"></i>';
+  $('uptimeBar').innerHTML    = Array(50).fill('<div class="seg load"></div>').join('');
+
+  // Asosiy monitoring
+  if(BASIC_TID) clearInterval(BASIC_TID);
+  basicCheck(); loadStats();
+  BASIC_TID = setInterval(()=>{ basicCheck(); loadStats(); }, 30000);
+
+  // Kengaytirilgan panellar (server yukidan qochish uchun 1.2s oraliq)
+  Object.keys(P).forEach((name,i)=>{
+    setPill(name,'neutral','Kutilmoqda');
+    setLoading(name);
+    setCard(name,'');
+    setTimeout(()=>panelStart(name,true), i*1200);
+  });
+}
+
+/* ═══════════════════════════════════════════════════════════
+   RENDERERS
+═══════════════════════════════════════════════════════════ */
+function renderPanel(name,d){
+  const R={dns:rDNS, whois:rWHOIS, redirects:rRedirects,
+           headers:rHeaders, ping:rPing, ports:rPorts,
+           content:rContent, geoip:rGeoIP};
+  R[name]?.(d);
+}
+
+/* ── ① DNS ─────────────────────────────────────────────── */
+function rDNS(d){
+  if(d?.error){ setErr('dns',d.error); return; }
+  const recs    = d.current_records || d;
+  const changed = d.has_changes && d.changes?.length;
+
+  setPill('dns', changed?'warn':'ok', changed?'⚠️ O\'zgarish!':'Barqaror');
+  setCard('dns', changed?'warn':'ok');
+
+  // Ogohlantirish / OK blok
+  let alert_html = changed
+    ? ab('warn','exclamation-triangle',`<strong>DNS o'zgarish aniqlandi!</strong>`
+        + d.changes.map(c=>`<div class="mt-1"><span class="badge bg-${c.type==='ADDED'?'success':'danger'} me-1">${c.type}</span><code>${c.record}: ${c.value}</code></div>`).join(''))
+    : ab('ok','check-circle','DNS yozuvlarda o\'zgarish yo\'q');
+
+  // Yozuvlar
+  let chips = '';
+  for(const t of ['A','AAAA','MX','NS','TXT']){
+    (recs[t]||[]).forEach(v=>{
+      chips += `<span class="dns-chip"><span class="dns-type">${t}</span>${v.length>40?v.slice(0,40)+'…':v}</span>`;
     });
-
-    // Hourly
-    if (hourly && hourly.length) {
-      const hCtx = document.getElementById('hourlyChart').getContext('2d');
-      if (hChart) hChart.destroy();
-      hChart = new Chart(hCtx, {
-        type: 'bar',
-        data: {
-          labels: hourly.map(h => h.hour + ':00'),
-          datasets: [
-            {
-              label: 'Uptime %',
-              data: hourly.map(h => h.uptime),
-              backgroundColor: hourly.map(h =>
-                h.uptime>=99 ? 'rgba(40,167,69,0.75)' :
-                h.uptime>=90 ? 'rgba(255,193,7,0.75)' : 'rgba(220,53,69,0.75)'),
-              borderRadius: 5, yAxisID: 'y'
-            },
-            {
-              label: 'Javob (ms)', data: hourly.map(h => h.avg_resp),
-              type: 'line', borderColor: '#0d6efd', backgroundColor: 'transparent',
-              borderWidth: 2, tension: 0.4, pointRadius: 3, yAxisID: 'y2'
-            }
-          ]
-        },
-        options: {
-          responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#495057', font: { size: 11 } } } },
-          scales: {
-            x:  { grid: { color: '#f0f0f0' }, ticks: { color: '#6c757d' } },
-            y:  { grid: { color: '#f0f0f0' }, ticks: { color: '#6c757d' }, min: 0, max: 100,
-                  title: { display: true, text: 'Uptime %', color: '#6c757d', font: { size: 11 } } },
-            y2: { position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#0d6efd' },
-                  title: { display: true, text: 'ms', color: '#0d6efd', font: { size: 11 } } }
-          }
-        }
-      });
-    }
   }
 
-  // Enter bilan boshlash
-  document.getElementById('urlInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') startMonitoring();
+  $('body-dns').innerHTML = alert_html
+    + `<div style="display:flex;flex-wrap:wrap;margin-top:4px;">${chips||'<span class="text-muted">Yozuv topilmadi</span>'}</div>`;
+}
+
+/* ── ② WHOIS ───────────────────────────────────────────── */
+function rWHOIS(d){
+  if(d?.error){ setErr('whois',d.error); return; }
+  const days = d.days_until_expiry;
+  const ptype = days!==null&&days<7?'danger':days<30?'warn':'ok';
+  const ptxt  = days!==null ? days+' kun qoldi' : 'OK';
+  const dc    = days<7?'#dc3545':days<30?'#ffc107':'#28a745';
+
+  setPill('whois',ptype,ptxt);
+  setCard('whois',ptype==='ok'?'ok':ptype);
+
+  $('body-whois').innerHTML = `
+    <div class="d-flex align-items-center gap-2 mb-2">
+      <div style="font-size:28px;line-height:1;">🏷️</div>
+      <div>
+        <div style="font-weight:700;font-size:14px;">${d.domain}</div>
+        <div style="margin-top:2px;">${sv(d.severity)}</div>
+      </div>
+    </div>
+    ${ir('Registrar', d.registrar)}
+    ${ir('Ro\'yxat', d.creation_date)}
+    ${ir('Muddat', `<span style="color:${dc};font-weight:700;">${d.expiry_date||'—'}</span>`)}
+    ${ir('Qolgan', `<span style="color:${dc};font-weight:700;">${days??'—'} kun</span>`)}
+    ${ir('NS', (d.name_servers||[]).slice(0,2).join('<br>'))}`;
+}
+
+/* ── ③ REDIRECTS ───────────────────────────────────────── */
+function rRedirects(d){
+  if(d?.error){ setErr('redirects',d.error); return; }
+  const hasW = d.warnings?.length>0;
+  setPill('redirects', hasW?'warn':'ok', (d.redirect_count||0)+' redirect'+(hasW?' ⚠️':''));
+  setCard('redirects', hasW?'warn':'ok');
+
+  const warnings = (d.warnings||[]).map(w=>
+    ab(w.severity==='high'?'danger':'warn','exclamation-triangle',w.message)).join('');
+
+  const chain = (d.chain||[]).map((s,i)=>{
+    const last = i===d.chain.length-1;
+    const col  = s.status_code<400?'#28a745':'#dc3545';
+    return `<div class="rs">
+      <span style="background:${col};color:#fff;padding:1px 5px;border-radius:3px;font-size:9px;font-weight:700;flex-shrink:0;">${s.status_code}</span>
+      <span style="font-family:monospace;font-size:10px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${s.url}</span>
+      ${last?'<span class="badge bg-success" style="font-size:8px;">FINAL</span>':'<i class="fas fa-arrow-down" style="color:#adb5bd;font-size:9px;"></i>'}
+    </div>`;
+  }).join('');
+
+  $('body-redirects').innerHTML = warnings
+    + `<div class="d-flex gap-3 mb-2">
+         <div class="text-center"><div style="font-size:20px;font-weight:700;color:var(--blue);">${d.redirect_count||0}</div>
+           <div style="font-size:9px;color:#adb5bd;">REDIRECT</div></div>
+         <div style="flex:1;">${ir('Final URL','<code style="font-size:10px;">'+(d.final_url||'').replace(/https?:\/\//,'')+'</code>')}</div>
+       </div>${chain}`;
+}
+
+/* ── ④ HEADERS ─────────────────────────────────────────── */
+function rHeaders(d){
+  if(d?.error){ setErr('headers',d.error); return; }
+  const g  = d.grade||'F';
+  const pt = {A:'ok',B:'info',C:'warn',F:'danger'}[g]||'danger';
+  setPill('headers', pt, 'Baho: '+g+' ('+d.score+'/100)');
+  setCard('headers', pt);
+
+  const gc = {A:'#28a745',B:'#0d6efd',C:'#ffc107',F:'#dc3545'}[g]||'#dc3545';
+
+  // Top 5 header
+  const TOP = ['Strict-Transport-Security','Content-Security-Policy','X-Frame-Options','X-Content-Type-Options','Referrer-Policy'];
+  const hdrs = d.security_headers||{};
+  const rows = TOP.map(h=>{
+    const ok=hdrs[h]?.present;
+    return `<div class="d-flex justify-content-between align-items-center" style="padding:4px 0;border-bottom:1px solid #f8f9fa;font-size:11px;">
+      <span style="color:#6c757d;">${h.replace('Strict-Transport-Security','HSTS').replace('Content-Security-Policy','CSP').replace('X-','').replace('-Options','').replace('-Policy','').trim()}</span>
+      <span class="badge ${ok?'bg-success':'bg-danger'}" style="font-size:9px;">${ok?'✓ OK':'✗ YO\'Q'}</span>
+    </div>`;
+  }).join('');
+
+  const tech = (d.tech_disclosure||[]).slice(0,2).map(t=>
+    `<div style="font-size:10px;color:#856404;margin-top:2px;"><i class="fas fa-exclamation-triangle me-1"></i><strong>${t.header}:</strong> ${t.value}</div>`).join('');
+
+  $('body-headers').innerHTML = `
+    <div class="d-flex align-items-center gap-3 mb-2">
+      <div style="width:46px;height:46px;border-radius:50%;background:${gc}20;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:900;color:${gc};flex-shrink:0;">${g}</div>
+      <div>
+        <div style="font-weight:700;">${d.score}/100 &nbsp;·&nbsp; ${d.missing_critical||0} ta header yetishmaydi</div>
+        <div style="font-size:11px;color:#6c757d;">Javob: ${d.response_time_ms||'—'}ms</div>
+        ${tech}
+      </div>
+    </div>
+    ${rows}`;
+}
+
+/* ── ⑤ PING ────────────────────────────────────────────── */
+function rPing(d){
+  if(d?.error && !d.reachable){ setErr('ping',d.error||'Ping xatolik'); return; }
+  const col  = d.reachable?'#28a745':'#dc3545';
+  const loss = d.packet_loss_percent||0;
+  const ptype = d.reachable?(loss>0?'warn':'ok'):'danger';
+  setPill('ping', ptype, d.reachable?(d.rtt_avg_ms?d.rtt_avg_ms+'ms':'OK'):'Erishilmadi');
+  setCard('ping', ptype);
+
+  $('body-ping').innerHTML = `
+    <div class="d-flex align-items-center gap-2 mb-3">
+      <div style="width:42px;height:42px;border-radius:50%;background:${col}20;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">
+        <i class="fas fa-${d.reachable?'check':'times'}" style="color:${col};"></i>
+      </div>
+      <div>
+        <div style="font-weight:700;color:${col};font-size:14px;">${d.reachable?'ERISHILADI ✓':'ERISHILMAYDI ✗'}</div>
+        <div style="font-size:11px;color:#6c757d;">${d.host||''} &nbsp;${sv(d.severity)}</div>
+      </div>
+    </div>
+    <div class="mrow">
+      ${[
+        {v:d.rtt_min_ms!=null?d.rtt_min_ms+'ms':'—', l:'Min RTT',    c:col},
+        {v:d.rtt_avg_ms!=null?d.rtt_avg_ms+'ms':'—', l:"O'rtacha",   c:col},
+        {v:d.rtt_max_ms!=null?d.rtt_max_ms+'ms':'—', l:'Max RTT',    c:col},
+        {v:loss+'%',                                   l:"Yo'qotish", c:loss>0?'#dc3545':'#28a745'},
+      ].map(m=>`<div class="mbox"><div class="mbox-val" style="color:${m.c};">${m.v}</div><div class="mbox-lbl">${m.l}</div></div>`).join('')}
+    </div>`;
+}
+
+/* ── ⑥ PORTLAR ─────────────────────────────────────────── */
+function rPorts(d){
+  if(d?.error){ setErr('ports',d.error); return; }
+  const risky = (d.risky_ports||[]).length;
+  const ptype = risky>0?'danger':d.has_changes?'warn':'ok';
+  setPill('ports', ptype, risky>0?risky+' xavfli port':(d.open_count||0)+' ochiq');
+  setCard('ports', ptype);
+
+  const riskySet = new Set((d.risky_ports||[]).map(p=>p.port));
+  const chips = (d.open_ports||[]).map(p=>
+    `<span class="pc ${riskySet.has(p.port)?'risky':'open'}">
+      <i class="fas fa-${riskySet.has(p.port)?'exclamation-triangle':'circle'}" style="font-size:8px;"></i>
+      :${p.port} <span style="opacity:.7;">${p.service}</span>
+    </span>`).join('') || '<span class="text-muted" style="font-size:11px;">Ochiq port topilmadi</span>';
+
+  const chg = (d.has_changes && d.changes?.length)
+    ? ab('danger','exclamation-triangle',`<strong>Port o'zgarish!</strong>`
+        +d.changes.slice(0,4).map(c=>`<div><span class="badge bg-${c.type==='OPENED'?'danger':'secondary'} me-1">${c.type}</span>:${c.port} (${c.service}) ${sv(c.severity)}</div>`).join(''))
+    : '';
+
+  $('body-ports').innerHTML = chg
+    + `<div class="d-flex gap-3 mb-2">
+         <div class="text-center"><div style="font-size:18px;font-weight:700;color:var(--blue);">${d.open_count||0}</div><div style="font-size:9px;color:#adb5bd;">OCHIQ</div></div>
+         <div class="text-center"><div style="font-size:18px;font-weight:700;color:#dc3545;">${risky}</div><div style="font-size:9px;color:#adb5bd;">XAVFLI</div></div>
+       </div>
+       <div style="display:flex;flex-wrap:wrap;">${chips}</div>`;
+}
+
+/* ── ⑦ MAZMUN ──────────────────────────────────────────── */
+function rContent(d){
+  if(d?.error){ setErr('content',d.error); return; }
+  const changed=d.has_changed, first=d.is_first_check;
+  const ptype=changed?'danger':first?'info':'ok';
+  setPill('content', ptype, changed?"O'zgardi!":first?'Birinchi tekshiruv':"O'zgarishsiz");
+  setCard('content', ptype);
+
+  let alert_html='';
+  if(first){
+    alert_html=ab('info','info-circle','Birinchi tekshiruv — snapshot saqlandi');
+  } else if(changed){
+    const det=d.change_details||{};
+    alert_html=ab('danger','exclamation-triangle',`<strong>Sahifa mazmuni o'zgardi!</strong>`
+      +(det.size_change_bytes?`<div>Hajm farqi: ${det.size_change_bytes>0?'+':''}${det.size_change_bytes} bayt</div>`:'')
+      +(det.last_stable?`<div>Oxirgi barqaror: ${det.last_stable}</div>`:'')
+      +sv(det.severity));
+  } else {
+    alert_html=ab('ok','check-circle','Mazmun o\'zgarishsiz');
+  }
+
+  $('body-content').innerHTML = alert_html
+    + ir('Hash (SHA-256)', `<code style="font-size:10px;">${(d.content_hash||'—').slice(0,18)}…</code>`)
+    + ir('Hajm', d.content_size_bytes?(d.content_size_bytes/1024).toFixed(1)+' KB':'—');
+}
+
+/* ── ⑧ GeoIP ───────────────────────────────────────────── */
+function rGeoIP(d){
+  if(d?.error){ setErr('geoip',d.error); return; }
+  const flag = d.country_code
+    ? String.fromCodePoint(...[...d.country_code.toUpperCase()].map(c=>0x1F1E0+c.charCodeAt(0)-65))
+    : '🌍';
+  setPill('geoip','ok',d.country_code||'OK');
+  setCard('geoip','ok');
+
+  $('body-geoip').innerHTML = `
+    <div class="geo-box">
+      <div style="font-size:34px;flex-shrink:0;">${flag}</div>
+      <div>
+        <div style="font-weight:700;font-size:14px;">${d.country||'—'}</div>
+        <div style="font-size:11px;color:#495057;">${[d.city,d.region].filter(Boolean).join(', ')||'—'}</div>
+        <code style="font-size:11px;color:var(--blue);">${d.ip||'—'}</code>
+      </div>
+    </div>
+    ${ir('ISP', d.isp)}
+    ${ir('Tashkilot', d.org)}
+    ${ir('ASN', d.asn)}
+    ${ir('Vaqt zonasi', d.timezone)}
+    ${d.lat&&d.lon?ir('Koordinatlar',d.lat+', '+d.lon):''}`;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ASOSIY MONITORING  (HTTP check + statistika)
+═══════════════════════════════════════════════════════════ */
+async function basicCheck(){
+  try{
+    const r = await fetch('/monitoring/check',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({url:URL_NOW})
+    });
+    heroUpdate(await r.json());
+  }catch(e){}
+}
+
+function heroUpdate(d){
+  const hero=$('statusHero'), ic=$('heroIcon');
+  if(d.is_up){
+    hero.className='status-hero up'; ic.className='hero-icon up';
+    ic.innerHTML='<i class="fas fa-check"></i>';
+    $('heroMeta').textContent=`HTTP ${d.status_code} · Javob: ${d.response_time}ms`+(d.ssl_days_left?` · SSL ${d.ssl_days_left} kun`:'');
+  } else {
+    hero.className='status-hero down'; ic.className='hero-icon down';
+    ic.innerHTML='<i class="fas fa-times"></i>';
+    $('heroMeta').textContent='⚠️ '+(d.error||'Xatolik');
+  }
+  $('hRT').textContent=d.response_time?d.response_time+'ms':'—';
+  $('hRT').className='hm-val '+(d.is_up?'text-success':'text-danger');
+  $('hHC').textContent=d.status_code||'—';
+  $('hSS').textContent=d.ssl_days_left?d.ssl_days_left+' kun':'—';
+}
+
+async function loadStats(){
+  try{
+    const r    = await fetch('/monitoring/stats?url='+encodeURIComponent(URL_NOW)+'&hours=24');
+    const data = await r.json();
+    statsCards(data.stats);
+    uptimeBar(data.history);
+    logUpdate(data.history);
+    charts(data.chart, data.stats, data.hourly);
+  }catch(e){}
+}
+
+function statsCards(s){
+  const pct=s.uptime_percent, el=$('sUP');
+  el.textContent=pct+'%';
+  el.className='stat-val '+(pct>=99?'text-success':pct>=90?'text-warning':'text-danger');
+  $('sUPm').textContent=`${s.up_count} ok / ${s.total_checks} jami`;
+  $('sAV').textContent=(s.avg_response_time||0)+'ms';
+  $('sAVm').textContent=`Min:${s.min_response_time}ms · Max:${s.max_response_time}ms`;
+  $('sTT').textContent=s.total_checks;
+  $('sDN').textContent=s.down_count;
+  $('hUP').textContent=pct+'%';
+  $('legU').textContent=s.up_count;
+  $('legD').textContent=s.down_count;
+}
+
+function uptimeBar(h){
+  const bar=$('uptimeBar');
+  if(!h?.length){ bar.innerHTML='<div class="text-muted" style="font-size:12px;padding:6px 0;">Hali ma\'lumot yo\'q</div>'; return; }
+  bar.innerHTML=h.map(x=>{
+    const t=`${x.checked_at?.slice(11,16)||''} · ${x.is_up?'✓ '+(x.response_time||0)+'ms':'✕ '+(x.error||'Xato')}`;
+    return `<div class="seg ${x.is_up?'up':'down'}" title="${t}"></div>`;
+  }).join('');
+}
+
+function logUpdate(h){
+  const el=$('logList');
+  if(!h?.length){ el.innerHTML='<div class="text-muted" style="font-size:12px;">Hali ma\'lumot yo\'q</div>'; return; }
+  el.innerHTML=[...h].reverse().slice(0,14).map(x=>`
+    <div class="log-item">
+      <div class="d-flex align-items-center">
+        <div class="ldot ${x.is_up?'up':'down'}"></div>
+        <span class="${x.is_up?'text-success fw-semibold':'text-danger fw-semibold'}" style="font-size:12px;">${x.is_up?'▲ ISHLAYDI':'▼ ISHLAMAYDI'}</span>
+        ${x.response_time?`<span class="text-muted ms-2" style="font-size:11px;">${x.response_time}ms</span>`:''}
+        ${x.error?`<span class="text-danger ms-2" style="font-size:11px;">${x.error}</span>`:''}
+      </div>
+      <span class="text-muted" style="font-size:11px;">${x.checked_at?.slice(11,16)||''}</span>
+    </div>`).join('');
+}
+
+function charts(cd, stats, hourly){
+  const lCtx=$('lineChart').getContext('2d');
+  if(LC) LC.destroy();
+  LC=new Chart(lCtx,{
+    type:'line',
+    data:{labels:cd.labels,datasets:[{
+      data:cd.response_times,label:'ms',
+      borderColor:'#0d6efd',backgroundColor:'rgba(13,110,253,.07)',
+      borderWidth:2,tension:.4,fill:true,pointRadius:4,
+      pointBackgroundColor:cd.statuses.map(s=>s?'#28a745':'#dc3545'),
+      pointBorderColor:'#fff',pointBorderWidth:1.5
+    }]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{x:{grid:{color:'#f0f0f0'},ticks:{color:'#6c757d',maxTicksLimit:8}},
+              y:{grid:{color:'#f0f0f0'},ticks:{color:'#6c757d'},min:0}}}
   });
 
-  // Sahifa ochilganda darhol boshlash
-  window.addEventListener('DOMContentLoaded', () => {
-    doCheck(); loadStats();
-    refreshTimer = setInterval(() => { doCheck(); loadStats(); }, 30000);
+  const dCtx=$('donutChart').getContext('2d');
+  if(DC) DC.destroy();
+  DC=new Chart(dCtx,{
+    type:'doughnut',
+    data:{labels:['Ishlaydi','Ishlamaydi'],
+      datasets:[{data:[stats.uptime_percent,Math.max(100-stats.uptime_percent,.01)],
+        backgroundColor:['#28a745','#dc3545'],borderColor:'#fff',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'70%',
+      plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>` ${c.label}: ${Number(c.raw).toFixed(1)}%`}}}}
   });
 
-  window.addEventListener('beforeunload', () => {
-    if (refreshTimer) clearInterval(refreshTimer);
+  if(hourly?.length){
+    const bCtx=$('barChart').getContext('2d');
+    if(BC) BC.destroy();
+    BC=new Chart(bCtx,{
+      type:'bar',
+      data:{labels:hourly.map(h=>h.hour+':00'),datasets:[
+        {label:'Uptime %',data:hourly.map(h=>h.uptime),yAxisID:'y',borderRadius:4,
+         backgroundColor:hourly.map(h=>h.uptime>=99?'rgba(40,167,69,.75)':h.uptime>=90?'rgba(255,193,7,.75)':'rgba(220,53,69,.75)')},
+        {label:'Javob ms',data:hourly.map(h=>h.avg_resp),type:'line',yAxisID:'y2',
+         borderColor:'#0d6efd',backgroundColor:'transparent',borderWidth:2,tension:.4,pointRadius:3}
+      ]},
+      options:{responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{labels:{color:'#495057',font:{size:11}}}},
+        scales:{
+          x:{grid:{color:'#f0f0f0'},ticks:{color:'#6c757d'}},
+          y:{grid:{color:'#f0f0f0'},ticks:{color:'#6c757d'},min:0,max:100,
+             title:{display:true,text:'Uptime %',color:'#6c757d',font:{size:10}}},
+          y2:{position:'right',grid:{drawOnChartArea:false},ticks:{color:'#0d6efd'},
+              title:{display:true,text:'ms',color:'#0d6efd',font:{size:10}}}
+        }}
+    });
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════
+   SAHIFA OCHILGANDA
+═══════════════════════════════════════════════════════════ */
+$('urlInput').addEventListener('keydown', e=>{ if(e.key==='Enter') startAll(); });
+
+window.addEventListener('DOMContentLoaded', ()=>{
+  // Asosiy monitoring
+  basicCheck(); loadStats();
+  BASIC_TID = setInterval(()=>{ basicCheck(); loadStats(); }, 30000);
+
+  // Kengaytirilgan 8 panel — har birini 1.2s kechikish bilan boshlash
+  // (serverni bir vaqtda 8 so'rov bilan yuklamaslik uchun)
+  Object.keys(P).forEach((name,i)=>{
+    setTimeout(()=>panelStart(name,true), i*1200);
   });
+});
+
+window.addEventListener('beforeunload', ()=>{
+  if(BASIC_TID) clearInterval(BASIC_TID);
+  Object.values(P).forEach(cfg=>{ if(cfg.tid) clearInterval(cfg.tid); });
+});
 </script>
 </body>
 </html>
